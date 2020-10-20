@@ -1,0 +1,159 @@
+---
+title: "dplyr"
+author: "36-350 -- Statistical Computing"
+date: "Week 4 -- Fall 2020"
+output: 
+  slidy_presentation: 
+    font_adjustment: -1
+---
+
+Introduction 
+===
+
+To make sense of this set of slides, think of data frames as nouns and `dplyr` functions as verbs, actions that you apply to manipulate the data frames.
+
+Here, we will learn the following `dplyr` verbs:
+
+- `slice()`: subset rows based on integer indexing 
+- `filter()`: subset rows based on logical criteria
+- `select()`: select certain columns
+- `arrange()`: order rows by value of a column
+- `rename()`: rename columns
+- `mutate()`: create new columns
+- `mutate_at()`: apply a function to given columns
+
+Calling `dplyr` verbs always outputs a new data frame; it *does not alter* the existing data frame.
+
+So to keep the changes, we have to reassign the data frame to be the output of the pipe, as we will see below.
+
+Load the tidyverse
+===
+
+```{r}
+# install the package if it doesn't exist...
+# require() will load it if it is there as a side-effect
+if ( require(tidyverse) == FALSE ) {
+  install.packages("tidyverse",repos="https://cloud.r-project.org")
+  suppressWarnings(library(tidyverse))
+}
+```
+
+slice()
+===
+
+Use `slice()` when you want to indicate certain row numbers need to be kept:
+
+```{r}
+mtcars %>% slice(c(7,8,14:15))
+
+# Compare with base R: mtcars[c(7,8,14:15),]
+```
+
+Slicing can also be done "negatively":
+
+```{r}
+mtcars %>% slice(-c(1:2,19:23)) %>% nrow()
+```
+
+filter()
+===
+
+Use `filter()` when you want to subset rows based on logical conditions:
+
+```{r}
+mtcars %>% filter(., (mpg >= 14 & disp >= 200) | (drat <= 3)) %>% head(., 2)
+
+# Base R:
+# head(subset(mtcars, (mpg >= 14 & disp >= 200) | (drat <= 3)), 2)
+# head(mtcars[(mtcars$mpg >= 14 & mtcars$disp >= 200) | (mtcars$drat <= 3),], 2)
+```
+
+select()
+===
+
+Use `select()` when you want to pick out certain columns:
+
+```{r}
+mtcars %>% select(., cyl, disp, hp) %>% head(., 2)
+
+# Base R:
+# head(mtcars[, c("cyl", "disp", "hp")], 2)
+```
+
+Handy Arguments for select()
+===
+
+Very handy selections using `dplyr` helper functions:
+```{r}
+mtcars %>% select(., starts_with("d")) %>% head(., 2)
+
+# Base R (yikes!):
+# d_colnames = grep(x = colnames(mtcars), pattern = "^d")
+# head(mtcars[, d_colnames], 2)
+```
+
+We can do many other things as well:
+```{r}
+mtcars %>% select(., ends_with('t')) %>% head(., 2)
+mtcars %>% select(., ends_with('yl')) %>% head(., 2)
+mtcars %>% select(., contains('ar')) %>% head(., 2)
+```
+
+arrange()
+===
+
+Use `arrange()` to order rows by values of a column:
+```{r}
+mtcars %>% arrange(., desc(drat)) %>% select(., mpg, disp, drat) %>% head(., 2)
+
+# Base R:
+# drat_inds = order(mtcars$drat, decreasing=TRUE)
+# head(mtcars[drat_inds, c("mpg", "disp", "drat")], 2)
+```
+
+We can order by multiple columns too:
+```{r}
+mtcars %>% arrange(., desc(gear), desc(hp)) %>% select(., gear, hp, everything()) %>% head(., 8)
+```
+Here, we arrange first in order of `gear` (decreasing); then, for each unique value of `gear`, we arrange in order of `hp` (decreasing).
+
+mutate()
+===
+
+Use `mutate()` when you want to create one or several columns:
+```{r}
+mtcars = mtcars %>% mutate(., hp_wt = hp/wt, mpg_wt = mpg/wt) 
+
+# Base R:
+# mtcars$hp_wt = mtcars$hp/mtcars$wt
+# mtcars$mpg_wt = mtcars$mpg/mtcars$wt
+```
+
+mutate_at()
+===
+
+Use `mutate_at()` when you want to apply a function to one or several columns:
+
+```{r}
+mtcars = mtcars %>% mutate_at(., c("hp_wt", "mpg_wt"), log) 
+
+# Base R:
+# mtcars$hp_wt = log(mtcars$hp_wt)
+# mtcars$mpg_wt = log(mtcars$mpg_wt)
+```
+
+**Note**: again, calling `mutate_at()` outputs a new data frame, it does not alter the given data frame, so to keep the column transformations, we have to reassign `mtcars` to be the output of the pipe!
+
+rename()
+===
+
+Use `rename()` to easily rename columns:
+
+```{r}
+mtcars %>% rename(., hp_wt_log=hp_wt, mpg_wt_log=mpg_wt) %>% head(., 2)
+
+# Base R:
+# colnames(mtcars)[colnames(mtcars)=="hp_wt"] = "hp_wt_log"
+# colnames(mtcars)[colnames(mtcars)=="mpg_wt"] = "mpg_wt_log"
+# head(mtcars, 2)
+```

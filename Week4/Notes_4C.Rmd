@@ -1,0 +1,112 @@
+---
+title: "Pipes"
+author: "36-350 -- Statistical Computing"
+date: "Week 4 -- Fall 2020"
+output: 
+  slidy_presentation: 
+    font_adjustment: -1
+---
+
+The Pipe Operator
+===
+
+The `tidyverse`, which contain variants of split-apply-combine functions existing outside of base `R`, relies on so-called "pipes." What do we need to know about pipes?
+
+- `tidyverse` functions perform at their best when strung together using the pipe operator.
+- The pipe operator is `%>%`. **NOTE**: use `ctrl + shift + m` as RStudio shortcut.
+- The pipe operator actually comes from the `magrittr` package (automatically loaded with the `tidyverse`), so it can be used on its own, completely independently.
+
+But what does a pipe *do*? 
+
+It takes the return value from one function call and automatically feeds it in as an input to another function.
+
+Note that in Unix, for instance, we also have pipes, as in:
+```
+ls -l | grep tidy | wc -l
+```
+
+magrittr
+===
+
+Normally you would just load the entire `tidyverse`, but just to make the point that the `magrittr` package is the one with the pipe, and that the pipe can be used with non-`tidyverse` functions, we'll load `magrittr` alone.
+```{r}
+# install the package if it doesn't exist...
+# require() will load it if it is there as a side-effect
+if ( require(magrittr) == FALSE ) {
+  install.packages("magrittr",repos="https://cloud.r-project.org")
+  library(magrittr)
+}
+```
+
+Example
+===
+
+We can write `exp(1)` with pipes as `1 %>% exp()`, and `log(exp(1))` as `1 %>% exp() %>% log()`
+```{r}
+exp(1)
+1 %>% exp() # actually, you don't even need the parantheses if there was to be only one argument
+1 %>% exp %>% log
+```
+
+How to Read a Piped Statement
+===
+
+Passing a single argument through pipes, we interpret something like:
+```{r, eval=FALSE}
+x %>% f %>% g %>% h
+```
+as `h(g(f(x)))`. So, in your mind, when you see `%>%`, you should say "and then."
+
+To pass a single value `x` to a function that has, e.g., two arguments (`x` and `y`), you would write
+```{r, eval=FALSE}
+x %>% f(y) 
+```
+Here, `x` is assumed to be the first argument of `f()`, and `y` the second. Later we will see how to generalize this so that `x` need not be the first argument of `f()`.
+
+Example
+===
+
+See if you can interpret the command below without running it, then run it in your `R` console to check your understanding:
+
+```{r, eval=FALSE}
+mtcars %>% head(4) %>% View
+```
+
+(Note: `mtcars` is one of the many datasets that are included in the base `R` environment. To see a list of all of the datasets, use `library(help="datasets")`.)
+
+---
+
+The answer: it takes the data frame `mtcars` (32 rows, 11 columns), extracts the first four rows, then passes those four rows to a viewer.
+
+What's the "old school" (i.e., base R) way of doing this?
+
+```{r, eval=FALSE}
+View(head(mtcars,4))
+```
+
+Notice that, with pipes:
+
+- Your code is more easily read and interpreted (arguably)
+- You can run partial commands more easily
+
+The Dot
+===
+
+The command `x %>% f(y)` can be equivalently written in *dot notation* as:
+```{r, eval=FALSE}
+x %>% f(.,y)
+```
+What's the advantage of using dots? Sometimes you want to pass in a variable as the *second* or *third* (say, not first) argument to a function, with a pipe. As in:
+```{r, eval=FALSE}
+x %>% f(y,.)
+```
+which is equivalent to evaluating `f(y,x)`.
+
+Example
+===
+
+Again, see if you can interpret the code below without running it, then run it in your `R` console as a way to check your understanding:
+```{r, eval=FALSE}
+x = seq(-2*pi,2*pi,len=1000)
+x %>% sin %>% abs %>% plot(x,.,typ="l")
+```

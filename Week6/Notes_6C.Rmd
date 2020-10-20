@@ -1,0 +1,125 @@
+---
+title: "Introduction to ggplot: Basic Visualizers"
+author: "36-350 -- Statistical Computing"
+date: "Week 6 -- Fall 2020"
+output: 
+  slidy_presentation: 
+    font_adjustment: -1
+---
+
+Preliminaries
+===
+
+Let's read in a data frame:
+```{r}
+df = read.csv("http://www.stat.cmu.edu/~pfreeman/GalaxyMass.csv")
+```
+These data consist of 3456 rows and 10 columns with names
+```{r}
+names(df)
+```
+
+ggplot
+===
+
+`ggplot` (actually, and perhaps confusingly, `ggplot2`) is "a system for declaratively creating graphics, based on [The Grammar of Graphics](https://www.amazon.com/Grammar-Graphics-Statistics-Computing/dp/0387245448/ref=as_li_ss_tl?ie=UTF8&qid=1477928463&sr=8-1&keywords=the+grammar+of+graphics&linkCode=sl1&tag=ggplot2-20&linkId=f0130e557161b83fbe97ba0e9175c431). You provide the data [frame], tell `ggplot2` how to map variables to aesthetics, what graphical primitives to use, and it takes care of the details."
+
+Sounds good. Let's dive in:
+```{r}
+library(ggplot2)    # also loaded as part of the tidyverse
+```
+
+ggplot: Bar Chart
+===
+
+A very basic call to `ggplot()` has the following structure:
+```
+ggplot(data=<data frame>,mapping=aes(x=<x axis variable>,...)) + geom_<plot type>(<arguments>)
+```
+For instance, how many galaxies are in each field?
+```{r fig.height=4,fig.width=4,fig.align="center"}
+ggplot(data=df,mapping=aes(x=field)) + geom_bar(color="red",fill="blue")
+```
+(A bar chart is appropriate when the x-axis variable is categorical and the y-axis variable is quantitative.)
+
+ggplot: Histogram
+===
+
+What is the distribution of galaxy sizes?
+```{r fig.height=4,fig.width=4,fig.align="center"}
+ggplot(data=df,mapping=aes(x=size)) + geom_histogram(color="blue",bins=25)
+```
+(A histogram is appropriate when the single variable in question is quantitative.)
+
+ggplot: Boxplot
+===
+
+Boxplots are just a bit trickier. What is the distribution of galaxy concentrations?
+```{r fig.height=4,fig.width=4,fig.align="center"}
+ggplot(data=df,mapping=aes(x="",y=C)) + geom_boxplot(color="blue",fill="orange")
+```
+(A boxplot is also for visualizing a quantitative variable.)
+
+ggplot: Faceting
+===
+
+Faceting is the act of making multiple plots at once that appear side-by-side as "facets". Faceting is something you might want to do when, e.g., you have a factor variable. Here, we show histograms of the concentration variable `C` broken up by galaxy field.
+```{r fig.height=4,fig.width=4,fig.align="center"}
+ggplot(data=df,mapping=aes(x=C)) + geom_histogram(color="blue",fill="yellow",bins=25) +
+  facet_wrap(~field,scales='free_x')
+```
+
+ggplot: Gather
+===
+
+`gather()` is a function (from the `tidyr` package) that takes a data frame and realigns it. It is best illustrated via a simple example. Let's say we have the following data frame, which we'll call `df`:
+```
+> df
+     x   y
+1  0.5 0.7
+2  1.2 1.9
+```
+If we "gather" these data, we get the following:
+```
+> library(tidyr)
+...
+> gather(df)
+      key  value
+1       x    0.5
+2       x    1.2
+3       y    0.7
+4       y    1.9
+```
+Combining `gather()` with faceting allows one to, e.g., visualize multiple variables at once.
+
+ggplot: Gather (+ dplyr)
+===
+
+```{r fig.height=4,fig.width=4,fig.align="center"}
+suppressMessages(library(tidyr))
+suppressMessages(library(magrittr))
+suppressMessages(library(dplyr))
+
+df.new = df %>% select(.,z.mode,mass) %>% gather(.)
+ggplot(data=df.new,mapping=aes(x=value)) + geom_histogram(color="blue",fill="yellow",bins=25) +
+  facet_wrap(~key,scales='free_x')
+```
+
+ggplot: Scatter Plot
+===
+
+How does the concentration of light in a galaxy vary as a function of its mass?
+```{r fig.height=4,fig.width=4,fig.align="center"}
+ggplot(data=df,mapping=aes(x=mass,y=C)) + geom_point(color="red",size=0.5)
+```
+
+ggplot: Scatter Plot with Density
+===
+
+By using `geom_density_2d()` we can overlay contours that indicate the density of points:
+```{r fig.height=4,fig.width=4,fig.align="center"}
+ggplot(data=df,mapping=aes(x=mass,y=C)) + geom_point(color="red",size=0.5) + geom_density_2d(size=1.5)
+```
+There is an indication here that more massive galaxies more have a bit more concentrated light...but we'd really need to move to methods of statistical learning before saying anything more.
+
+

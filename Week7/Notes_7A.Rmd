@@ -1,0 +1,101 @@
+---
+title: "Useful Numerical Tools"
+author: "36-350 -- Statistical Computing"
+date: "Week 7 -- Fall 2020"
+output: 
+  slidy_presentation: 
+    font_adjustment: -1
+---
+
+```{r,echo=FALSE}
+set.seed(101)
+```
+
+Overview
+===
+
+Numerical tools that one can bring to bear in `R` include ones for
+
+- working with polynomials
+- integrating and differentiating
+- interpolation
+- etc.
+
+This [web page](https://cran.r-project.org/web/views/NumericalMathematics.html) provides an overview of all the numerical tools that are available in `R`. Many are contained in specialized packages. Today we'll just highlight a view relatively often-used tools from base `R`.
+
+Note that we will not mention linear-algebra-related methods here, such as computing eigenvectors of matrices. We will cover some of those in Week 9.
+
+Root-Finding
+===
+
+`polyroot()`: input a vector of polynomial coefficients in *increasing* order, and get roots out. Output is given as complex numbers; real roots have imaginary coefficients of 0.
+```{r}
+polyroot(c(1,-2,3,3,-1)) # find roots of 1 - 2*x + 3*x^2 + 3*x^3 - x^4
+# This has two complex roots and two real roots.
+```
+
+`uniroot()`: a more general variant of `polyroot()` that searches for a root of a given function over an interval. *However, it only "works" if there is one root within the interval given. If there are an even number of roots, uniroot() issues an error message. If there are an odd number of roots, only one is output.*
+```{r}
+f = function(x) {
+  return(cos(x^2))
+}
+uniroot(f=f,interval=c(0,pi/2))$root # remember: pi is a reserved constant within R
+x = seq(0,pi/2,by=pi/100)
+plot(x,f(x),typ="l")
+abline(h=0,col="chartreuse")
+abline(v=uniroot(f=f,interval=c(0,pi))$root,col="chartreuse")
+```
+
+Approximation/Interpolation: Linear
+===
+
+For a given set of $(x,y)$ values, what is the value of $y$ associated with $x=x_o$? Note that this is done via linear interpolation, which can lead to accurate enough results if the function is densely sampled.
+```{r}
+x = seq(0,pi,by=pi/100)
+y = cos(x^2)
+# what is the value of this function at x = 2 and x = 3?
+approx(x,y,xout=c(2,3))
+```
+
+Approximation/Interpolation: Splines
+===
+
+A "spline" is a piecewise polynomial function (often utilizing cubic polynomials). It is a typical "nonparametric" estimator of an underlying function. There is much background material available via the web on splines; for our purposes here, it suffices to say it is a more flexible approximator than linear interpolation.
+```{r}
+x = seq(0,pi,by=pi/100)
+y = cos(x^2)
+# what is the value of this function at x = 2 and x = 3?
+spline(x,y,xout=c(2,3))
+```
+
+Integration
+===
+
+Let's say you wish to evaluate this integral:
+$$
+\int_{-\pi/4}^{\pi/4} \left(1 + \frac{1}{\cos(x)}\right) dx
+$$
+
+To do this, code it, then call the `R` function <tt>integrate()</tt>:
+```{r}
+integrand = function(x) {
+  return(1+1/cos(x))
+}
+integrate(integrand,-pi/4,pi/4)
+```
+
+If you just want the number, access the `value` list element.
+```{r}
+integrate(integrand,-pi/4,pi/4)$value
+```
+
+Differentiation
+===
+
+Computing and evaluating a derivative is kind of a weird one, in the way that the process is structured. Here we'll just do a simple univariate example. See the help page for `deriv` for more (somewhat obtuse) detail.
+```{r}
+f = expression(exp(x^2)*cos(x))   # put the function into a call to "expression"
+(df = D(f,"x"))                   # evaluate the derivative symbolically...and save the output
+x = seq(0,1,by=0.1)               # set the values of x over which to evaluate the derivative
+eval(df)                          # evaluate the derivative...note, x is not included in call!
+```

@@ -1,0 +1,93 @@
+---
+title: "Variations on Apply: Base R"
+author: "36-350 -- Statistical Computing"
+date: "Week 4 -- Fall 2020"
+output: 
+  slidy_presentation: 
+    font_adjustment: -1
+---
+
+```{r,echo=FALSE}
+set.seed(101)
+```
+
+The Base R Apply Family
+===
+
+In the last set of notes we discussed the use of `apply()`, which applies a function to the rows or columns of a matrix or data frame (and thus allows you to avoid using `for()` or `while()` loops).
+
+Here we will look at three variations of `apply()`:
+
+- `lapply()`: apply a function to a list (or vector)
+
+- `sapply()`: similar to `lapply()` but with "simplified" output
+
+- `tapply()`: apply a function to levels of a factor vector
+
+Note that this is not the complete set of `apply()`-like functions: there's also `mapply()` and `vapply()`, etc. You can search on the word "apply" in the documentation for the `R` base package to find them all.
+
+lapply()
+===
+
+Usage: `lapply(x,FUN=my.fun)`, where `x` is a list or vector.
+```{r}
+a.list = list(x=1:5,y=rnorm(10),z=letters[1:3])
+lapply(a.list,FUN=mean)
+```
+An `NA` gets returned if the function cannot be applied to the list component (as with a.list$z here).
+```{r}
+my.fun = function(x){x[1]}  # return the first element of the vector
+lapply(a.list,FUN=my.fun)
+```
+
+lapply()
+===
+
+Customized functions and "on-the-fly" functions and extra arguments all work as you expect, given your experience with `apply()`:
+```{r}
+my.fun = function(x,level) { ifelse(x<level,return(FALSE),return(TRUE)) }
+vec = state.x77[,"Population"]
+lapply.out = lapply(vec,FUN=my.fun,level=2000)
+head(lapply.out,3)  # input is vector, but output is list: one logical value for each vector element
+```
+
+sapply()
+===
+
+As stated on the first slide, `sapply()` acts like `lapply()`, but it attempts to simplify the output by, e.g., converting it from a list to a vector:
+```{r}
+my.fun = function(x,level) { ifelse(x<level,return(FALSE),return(TRUE)) }
+vec = state.x77[,"Population"]
+sapply.out = sapply(vec,FUN=my.fun,level=2000)
+head(sapply.out,3)  # input is vector, and output is vector
+```
+
+Think of `sapply()` as a wrapper function to `lapply()`. The general rules:
+
+- if the application of the function results in a single output for each input quantity (as is the case above), `sapply()` "unlists" the output from `lapply()`, creating a vector
+
+- if the outputs from `lapply()` are vectors that have the same length for each input quantity, `sapply()` converts the output to a matrix
+
+- otherwise, `sapply()` does nothing: you get the same list as you'd get from `lapply()`
+
+tapply()
+===
+
+Usage: `tapply(x,INDEX=my.index,FUN=my.fun)`, where `x` is a vector and `my.index` specifies the factor variable. (Note that this can be a list of factor variables, not just one.)
+```{r}
+tapply(state.x77[,"Population"],INDEX=state.region,FUN=mean)
+```
+In this example, `tapply()` took the input population vector, split its elements among four groups as defined by `state.region`, and applied `mean()` to the data within each of the four groups separately.
+
+Note the `by()` function, which works similarly to `tapply()` but with differently formatted output...
+```{r}
+by(state.x77[,"Population"],INDICES=state.region,FUN=mean)
+```
+
+tapply()
+===
+
+...and the `aggregate()` function, which also works similarly to `tapply()` but with differently formatted output.
+```{r}
+aggregate(state.x77[,"Population"],by=list(state.region),FUN=mean)
+```

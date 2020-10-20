@@ -1,0 +1,91 @@
+---
+title: "Tools for Web Scraping"
+author: "36-350 -- Statistical Computing"
+date: "Week 5 -- Fall 2020"
+output: 
+  slidy_presentation: 
+    font_adjustment: -1
+---
+
+```{r,echo=FALSE,message=FALSE}
+suppressWarnings(library(tidyverse))
+```
+
+Important Introductory Note
+===
+
+There do not necessarily exist functions that scrape web
+sites for you and do everything that needs to be done so as to extract the 
+information you want.
+
+There **are** functions that help extract blocks of text from web
+sites . . . but you will almost always have to apply regex-related string 
+manipulation tools to convert the output of these functions to something
+that you actually want.
+
+In short: web scraping is *not* a black-box exercise . . .
+
+For Instance, You Will Need to Know Some HTML
+===
+
+<center>![](http://www.stat.cmu.edu/~pfreeman/view_source.png){width=500px}</center>
+
+<br>
+
+<center>![](http://www.stat.cmu.edu/~pfreeman/html_nodes.png){width=500px}</center>
+
+Extraction via rvest
+===
+
+The `rvest` library is used to extract text and tables. The primary functions that you will use are
+
+- `read_html()`: read in the web page
+- `html_nodes()`: extract all text (including HTML code) defined by node boundaries
+- `html_text()`: extract the text between the node boundaries
+- `html_table()`: extract tabular information
+
+Note that `rvest` is not the only package you could use. Another often-used package is `XML`. If a combination of `rvest` and string manipulation doesn't easily get you what you want, then definitely explore the Internet (and StackOverflow) to see if other packages exists that will meet your needs.
+
+For more information, see, e.g., *Data Wrangling with R* by Bradley Boehmke and *XML and Web Technologies for Data Sciences with R* by Deborah Nolan and Duncan Temple Lang, both of which are available online via the CMU library.
+
+Example: Pittsburgh Industries
+===
+
+<center>![](http://www.stat.cmu.edu/~pfreeman/pgh_source.png){width=800px}</center>
+
+Your goal: to extract the paragraphs associated with "Major Industries and Commercial Activity". We note that the header is defined via an `<h2>` node, and the text with `<p>` nodes. The first words are "The southwestern Pennsylvania region" and there are five paragraphs in all.
+
+Example: Pittsburgh Industries
+===
+
+```{r}
+suppressMessages(library(rvest))
+page = read_html("https://www.encyclopedia.com/places/united-states-and-canada/us-political-geography/pittsburgh")
+page %>% html_nodes("p") %>% html_text() %>% head()
+```
+
+OK, this has pretty much what we want...
+```{r}
+page %>% html_nodes("p") %>% html_text() %>% head() %>% .[c(2:6)] %>% paste(.,collapse="\n\n") %>% cat()
+```
+`.[c(2:6])]` means "extract lines 2 through 6." The `paste()` function call says "paste all the lines together into a single character string, but put paragraph breaks between the lines (which are actually paragraphs)."
+
+Example: Pittsburgh Employers
+===
+
+```{r}
+page = read_html("https://www.encyclopedia.com/places/united-states-and-canada/us-political-geography/pittsburgh")
+(df = page %>% html_nodes("table") %>% .[1] %>% html_table())  # .[1] = "extract the first table"
+```
+The output from `html_table()` is a list of tables.
+
+Notice an issue? The column headers are given as the first row of the table. (And the numbers are actually character strings with commas.) We need to clean up a bit:
+```{r}
+new.df = df[[1]]
+names(new.df) = new.df[1,]
+new.df = new.df[-1,]
+rownames(new.df) = as.character(1:nrow(new.df))
+y = sapply(new.df[,2],function(x){gsub(",","",x)})
+new.df[,2] = as.numeric(y)
+new.df
+```

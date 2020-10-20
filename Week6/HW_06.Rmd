@@ -1,0 +1,276 @@
+---
+title: "HW: Week 6"
+author: "36-350 -- Statistical Computing"
+date: "Week 6 -- Fall 2020"
+output:
+  pdf_document:
+    toc: no
+  html_document:
+    toc: true
+    toc_float: true
+    theme: spacelab
+---
+
+Name: Kimberly Zhang
+
+Andrew ID: kyz
+
+You must submit **your own** lab as a PDF file on Gradescope.
+
+```{r wrap-hook,echo=FALSE}
+library(knitr)
+hook_output = knit_hooks$get('output')
+knit_hooks$set(output = function(x, options) {
+  # this hook is used only when the linewidth option is not NULL
+  if (!is.null(n <- options$linewidth)) {
+    x = knitr:::split_lines(x)
+    # any lines wider than n should be wrapped
+    if (any(nchar(x) > n)) x = strwrap(x, width = n)
+    x = paste(x, collapse = '\n')
+  }
+  hook_output(x, options)
+})
+```
+
+---
+
+```{r}
+suppressWarnings(library(tidyverse))
+```
+
+---
+
+## Question 1
+*(10 points)*
+
+Create a Gaussian mixture model sampler. In this sampler, a datum has a 40% chance of being sampled from a N(-1,1) distribution, and a 60% chance of being sampled from a N(2,1/9) distribution. Sample 100,000 data and create a density histogram of your result. Hint: use `sample()` with `replace` set to `TRUE` and an appropriate vector for `prob` in order to determine which of your 100,000 data should randomly be assigned to distribution 1 as opposed to distribution 2. Also note that if you create a sample of data from distribution 1 and another sample from distribution 2, you can simply combine them by doing, e.g., `x = c(sample1,sample2)`, where `x` becomes a vector of length 100,000.
+```{r linewidth=80, warning=FALSE, message= FALSE}
+set.seed(101)
+n = 100000
+res = rep(NA, n)
+sample.dist = sample(1:2, size = n, replace = TRUE, prob = c(0.4, 0.6))
+first.idx = which(sample.dist == 1)
+second.idx = which(sample.dist == 2)
+first.n = length(first.idx)
+second.n = length(second.idx)
+res[first.idx] = rnorm(first.n, mean = -1, sd = 1)
+res[second.idx] = rnorm(second.n, mean = 2, sd = 1/9)
+ggplot(data.frame(x=res), aes(x=x)) + 
+  geom_histogram(aes(y= ..density..), binwidth = 0.1) +
+  labs(title = "Distribution of Gaussian Mixture Model Samples")
+```
+
+## Question 2
+*(10 points)*
+
+What is the mean of the mixture model in Q1? Compute this via importance sampling, with 100,000 sampled points. You should get an answer around 0.2 (which you can actually derive analytically: if $X \sim N(-1,1)$ and $Y \sim N(2,1/9)$, then $E[0.4X+0.6Y]) = 0.4E[X] + 0.6E[Y] = -0.4 + 1.2 = 0.8$).
+```{r linewidth=80}
+set.seed(101)
+n = 100000
+x = rnorm(n)
+h = dnorm(x)
+g = rep(0, n)
+g[first.idx] = x[first.idx]
+g[second.idx] = x[second.idx]
+f = function(x){
+  f.x = rep(0, n)
+  f.x[first.idx] = dnorm(x[first.idx], mean = -1, sd = 1)
+  f.x[second.idx] = dnorm(x[second.idx], mean = 2, sd = 1/9)
+  return(f.x)
+}
+mean(g*f(x)/h)
+```
+
+## Question 3
+*(10 points)*
+
+Remember the Chutes and Ladders question? (Q4 of HW 2.) Display a probability histogram that shows the empirical PDF for the number of spins, computed over 10,000 Chutes and Ladders games. Also display the average number of spins that it takes to win the game (approximately 39, give or take) and the minimum number of spins. (Display these two numbers using `cat()`, being see to indicate which is the mean and which is the minimum number of spins.) (Free feel to use your code from HW 2 as a base for what you do here.)
+```{r}
+game = function(){
+currentPos= 0
+numSpins = 0
+ladder.top= c(38, 14, 31, 42, 84, 44, 67, 91, 100)
+ladder.bottom= c(1, 4, 9, 21, 28, 36, 51, 71, 80)
+chute.top= c(16, 47, 49,56, 62, 64, 87, 93, 95, 98)
+chute.bottom= c(6, 26, 11,53, 19, 60, 24, 73, 75, 78)
+while(currentPos != 100){
+  roll= sample(6, 1)
+  numSpins = numSpins + 1
+  if (currentPos + roll > 100) next
+  currentPos= currentPos + roll
+  ladderPos= which(currentPos==ladder.bottom)
+  chutePos= which(currentPos==chute.top)
+  if (length(ladderPos)!=0){
+    currentPos= ladder.top[ladderPos]
+  }else if (length(chutePos)!=0){
+    currentPos= chute.bottom[chutePos]
+  }
+}
+return(numSpins)
+}
+```
+
+```{r linewidth=80}
+n = 10000
+res = rep(NA, n)
+for (ii in 1:n) {
+  res[ii] = game()
+}
+cat(cat("Mean: ", mean(res)), "\n")
+cat(cat("Min: ", min(res)), "\n")
+```
+
+## Question 4
+*(10 points)*
+
+You are given the following distribution:
+$$
+f(x) = \frac{4}{11}(x^3+3x+1)~~~x \in [0,1]
+$$
+It looks like this:
+```{r linewidth=80}
+x = seq(0,1,by=0.001)
+fx = 4*(x^3+3*x+1)/11
+ggplot(data=data.frame(x=x,y=fx),mapping=aes(x=x,y=y)) + 
+  geom_line(col="peru",size=2) + ylim(0,max(fx))
+```
+
+Code up an inverse transform sampler that allows you to efficiently sample 1000 data from this distribution. Initially you will work with this and say "but...I cannot easily invert the CDF, because it's a quartic and all." To which I say "`polyroot()`, which will give you one real root between 0 and 1." To which you will say, "how do I extract that real root?" To which I will say "If you save the output of `polyroot()` as `p`, then the real roots are given by `w = which(abs(Im(p))<1.e-6`." (The 1.e-6 is a check against round-off error.) You then determine which value of `Re(p)[w]` is within the pdf bounds. Histogram your sample with the function line overlaid, and save your sample as `sample.it`. Note: pass a new argument to your histogram, `breaks=seq(0,1,by=0.05)`.
+```{r linewidth=80}
+set.seed(101)
+n = 1000
+u= runif(n)
+sample.it = rep(NA, n)
+for (ii in 1:n){
+  coeff = c(-1*u[ii], 4/11, 12/22, 0, 1/11)
+  p = polyroot(coeff)
+  w= which(abs(Im(p))<1.e-6 & Re(p) >= 0 & Re(p) <= 1)
+  sample.it[ii]= Re(p)[w]
+}
+x = seq(0,1,by=0.001)
+fx = 4*(x^3+3*x+1)/11
+df.pdf = data.frame(x=x, fx=fx)
+ggplot(data = data.frame(sample=sample.it), aes(x = sample)) + 
+geom_histogram(aes(y= ..density..), breaks=seq(0,1,by=0.05)) + 
+geom_line(data=df.pdf,aes(x=x,y=fx), col="blue", size = 2 ) +
+labs(title = "Distribution of Samples", x = "x", subtitle= "Inverse Transform")
+```
+
+## Question 5
+*(10 points)*
+
+Code up a rejection sampler that allows you to also sample 1000 data from this pdf given in the last question. Again, histogram your sample and overlay the pdf. Save your sample as `sample.rs`.
+```{r linewidth=80}
+set.seed(101)
+n = 1000
+sample.rs = rep(NA,n)   
+ii = 1
+while ( ii <= n ) {
+  sample.rs[ii] = runif(1)           
+  if ( runif(1,min=0,max=20/11) < 
+       4/11*(sample.rs[ii]^3 + 3*sample.rs[ii] + 1)) { 
+    ii = ii + 1   
+  }
+}
+x = seq(0,1,by=0.001)
+fx = 4*(x^3+3*x+1)/11
+df.pdf = data.frame(x=x, fx=fx)
+ggplot(data = data.frame(sample=sample.rs), aes(x = sample)) + 
+geom_histogram(aes(y= ..density..), breaks=seq(0,1,by=0.05)) + 
+geom_line(data=df.pdf,mapping=aes(x=x,y=fx), col="blue", size = 2 ) +
+labs(title = "Distribution of Samples", x = "x", 
+     subtitle= "Rejection Sampling")
+```
+
+## Question 6
+*(10 points)*
+
+Test the hypothesis that `sample.it` and `sample.rs` are both sampled from the same parent population. (I mean they are, but...) Either recall how you would do a two-sample test or Google how you would do it. (Note: I'm not talking about a two-sample t-test here! We are not testing the hypothesis that the distribution means are the same. We are testing the hypothesis that both samples are drawn from the same underlying population.) There are various options for doing this; pick one, and display the p-value. If it less than 0.05, we reject the null. (Hint: it shouldn't be.) In addition, plot the empirical cdfs for both samples; see the documentation for `ecdf()` for help. (To be clear: use the base `R` function `plot()` here, and not `ggplot()`.) Note that to plot a second ecdf on top of the first, you need to call `plot()` a second time, with the argument `add=TRUE`.
+```{r linewidth=80}
+ks.test(sample.it, sample.rs)
+plot(ecdf(sample.it))
+plot(ecdf(sample.rs), add = TRUE, col= "blue")
+```
+
+## Question 7
+*(10 points)*
+
+Write an inverse transform sampler that samples 10,000 data from a exponential distribution with rate parameter 1, but it keeps over the ranges $[0.5,1]$ and $[2,4]$. Make a probability histogram of your result. This time, tweak the call to `geom_histogram()` by adding the argument `breaks=seq(0,5,by=0.1)`.
+
+This is a bit tricky. (Note: this is an inverse transform sampler, so every single randomly sampled uniform random variable has to get mapped to a valid value of $x$.) You might want to start by computing the probabilities $P[0.5 \leq X \leq 1]$ and $P[2 \leq X \leq 4]$. Call these two quantities $u_{\rm lo}$ and $u_{\rm hi}$, and sample random numbers from a Uniform(0,$u_{\rm lo}+u_{\rm hi}$) distribution. If the number is $< u_{\rm lo}$, the sampled number should be mapped to a sample from the lower range, whereas if the number is $> u_{\rm lo}$, it should be mapped to a sample from the upper range. Note: to map from you uniform random variables to exponentially distributed ones, pass your uniform r.v.'s into `qexp()`.
+```{r linewidth=80}
+set.seed(101)
+n = 10000
+u_lo= pexp(1) - pexp(0.5)
+u_hi = pexp(4) - pexp(2)
+samples = runif(n, min= 0, max = u_lo + u_hi)
+res = rep(NA, n)
+x = seq(0,4,by=0.01)
+fx= dexp(x)/(u_lo + u_hi)
+df.pdf= data.frame(x=x, y=fx)
+res[samples <= u_lo] = qexp(samples[samples <= u_lo]  + pexp(0.5))
+res[samples > u_lo] = qexp(samples[samples > u_lo] + pexp(0.5) + pexp(2) - pexp(1)) 
+ggplot(data = data.frame(sample=res), aes(x = sample)) + 
+geom_histogram(aes(y= ..density..), breaks=seq(0,5,by=0.1)) + 
+labs(title = "Distribution of Samples", x = "x",
+     subtitle= "Inverse Transform") +
+  geom_line(data=df.pdf,mapping=aes(x=x,y=y), col="blue", size = 2 )
+```
+
+## Question 8
+*(10 points)*
+
+And now for something completely different: randomly sampling a name for your new baby, given 1930 Social Security Administration data. (You did know you were having a baby, right?)
+
+You'll see the `babynames` tibble has five columns. Using `dplyr` techniques, extract the rows for which the year is 1930, and then create a new data frame with just the columns `name` and `prop`. `prop` is a vector which gives the proportion of children given a particular name, but for some strange reason it does not sum to 1. Anyway, use a normalized version of this vector to appropriately sample one name from the `name` column. Show that name. Done. (If you set the random number seed to 111, you should get the name "Bernard".)
+```{r linewidth=80}
+if ( require(babynames) == FALSE ) {
+  install.packages("babynames",repos="https://cloud.r-project.org")
+  library(babynames)
+}
+set.seed(111)
+baby_df= babynames %>% filter(year == 1930) %>%  select(name, prop)
+sample(baby_df$name, size = 1, prob = baby_df$prop)
+```
+
+## Question 9
+*(10 points)*
+
+Numerically estimate the median of the pdf
+$$
+f(x) = \frac{2.92959}{\sqrt{2\pi}}e^{-x^2/2}~~~x \in [0,1] \,.
+$$
+(This is a truncated normal distribution.) The median is the value $y$ such that
+$$
+\int_0^y f(x) dx = 0.5 \,.
+$$
+A not-elegant way to do this is to use `integrate()` over and over again until you hone in on an integral value of 0.5. Don't do this. A more elegant solution is to determine, via `uniroot()`, the root of the function
+$$
+g(y) = \left( \int_0^y f(x) dx \right) - 0.5 \,,
+$$
+i.e., the value of $y$ such that $g(y) = 0$. Do do this.
+```{r linewidth=80}
+integrand= function(x) {
+  2.92959/sqrt(2*pi)*exp(1)^(-x^2/2)
+}
+f= function(y) {
+  integrate(integrand, 0, y)$value - 0.5
+}
+res= uniroot(f, interval = c(0,1))
+res$root
+```
+
+## Question 10
+*(10 points)*
+
+The ratio of the area of a circle to the area of a square into which the circle is inscribed is $\pi/4$. Does this ratio increase or decrease with dimensionality? For instance, what is the ratio of volume of a sphere to the volume of a cube into which the sphere is inscribed? Is it less than $\pi/4$? Compute (and display) the ratio for dimensions 3, 4, ..., 10. The result that you see has manifestations for, e.g., algorithms based on nearest neighbors, etc. Curse of dimensionality, n'at. (Hint: to do this calculation succinctly, consider putting samples from your uniform distribution into a $k \times d$ matrix, where $k$ is the number of sampled points, and $d$ is the dimensionality. Then you can use `apply()` to determine the distance of the points from the origin and you can easily finish the calculation from there...)
+```{r linewidth=80}
+set.seed(101)
+k = 100000
+d= 10
+u = runif(k*d)
+data = matrix(u^2, ncol = d)
+cumdata = t(apply(data, 1, cumsum))
+res = apply(cumdata, 2, function(x){sum(x<=1)/k})
+res[3:10]
+```

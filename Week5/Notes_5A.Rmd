@@ -1,0 +1,125 @@
+---
+title: "Basic File I/O"
+author: "36-350 -- Statistical Computing"
+date: "Week 5 -- Fall 2020"
+output: 
+  slidy_presentation: 
+    font_adjustment: -1
+---
+
+```{r,echo=FALSE,message=FALSE}
+suppressWarnings(library(tidyverse))
+```
+
+Formatted Text Files: Base R
+===
+
+If your data file is an ASCII (i.e., human-readable) text file . . .
+
+<center>![](http://www.stat.cmu.edu/~pfreeman/GalaxyStatistics.png){width=400px}</center>
+
+then you will generally use `read.table()` or `read.csv()`.
+
+- `read.table()`: used with data whose values are separated by spaces.
+- `read.csv()`: used when you have "comma-separated values"
+
+Other alternatives include `read.delim()` and `scan()` (for more general formats), along with the heretofore often-used `readLines()` (which simply reads each line of a file into an element of a character vector).
+
+We won't go into binary (i.e., non-human-readable) files, as how to read in their data can be highly domain specific. To get a handle on how you might proceed if a binary reader has not already been coded for you, see the help page for `connections`.
+
+Formatted Text Files: Base R
+===
+
+<center>![](http://www.stat.cmu.edu/~pfreeman/read.table.png){width=600px}</center>
+
+Beware the arguments!
+
+- `header` provides column names, and is `FALSE` by default for `read.table()`
+- `stringsAsFactors` is default `TRUE` and will lead to your character string vector being treated as a factor variable
+- `na.strings` is `NA` by default, but beware: domain scientists use many symbols and/or numbers to indicate that data are missing (like -99)
+
+Useful arguments:
+
+- `skip`: if there are lines of metadata preceding the first line of data, use `skip` to skip over them. 
+
+Side effects:
+
+- If your column name has white spaces, `read.table()` and `read.csv()` will fill them in with periods.
+
+Formatted Text Files: readr
+===
+
+Faster alternatives to base `R` functions are provided by the `readr` package, which as you might guess is part of the tidyverse.
+
+- `read.table()` -> `read_table()` and `read.csv()` -> `read_csv()`
+- **NOTE:** `read_table()` can do a bad job of parsing data; consider `read_delim()` instead
+- keeps variable names as is
+- columns of strings are read in as character vectors, but you can use the `col_types` argument to specify specific types, such as factor, to override the default identifications
+- reads data into a tibble, which you may (or may not) want to cast to a data frame
+
+```{r}
+require(readr)
+file.url = url("http://www.stat.cmu.edu/~pfreeman/GalaxyStatistics.txt") # see "connections"
+read_delim(file.url,delim=" +") %>% head(3)
+```
+
+Click [here](https://rawgit.com/rstudio/cheatsheets/master/data-import.pdf) for more information than you could possibly ever need about `readr`.
+
+Reading Excel Files: readxl
+===
+
+`readxl` is yet another tidyverse-related package for reading data directly from EXCEL spreadsheets with either `xls` or `xlsx` extensions. (Note: does not yet, by all appearances, cleanly load non-local files!)
+```{r}
+require(readxl)
+readxl_example()
+(tbl = read_excel(readxl_example("clippy.xls")))
+```
+
+You can specify four column types: `skip`, `numeric`, `date`, and `text`. 
+
+`skip` allows you to ignore a column:
+```{r}
+(tbl = read_excel(readxl_example("clippy.xls"),col_types=c("text","skip"))) # ignore second column
+```
+
+Writing Files: Base R
+===
+
+As you might expect, `read.table()` and `read.csv()` have analogous write functions: `write.table()` and `write.csv()`. The two main arguments to look out for are:
+
+- `quote`: default `TRUE`...it puts double quotes around your column (and row) names. Set this to `FALSE`.
+- `row.names`: default `TRUE`...which means, if you don't have row names in your data frame, you'll have `"1"`, `"2"`, etc. as the row names in your output. Also set this to `FALSE` if you don't have row names already.
+
+Writing Files: readr
+===
+
+Surprisingly, there is no `write_table()` function in `readr`; one can use `write_delim()` instead:
+```{r,eval=FALSE}
+write_delim(df,"./df.txt") # write the data frame df to the local file df.txt
+```
+By default, there are no quotes around the column names and no row names generated from the aether!
+
+There is a `write_csv()` function for comma-separated values.
+
+For EXCEL spreadsheets: use `write_excel_csv`.
+
+Storing R Objects: Save and Load
+===
+
+One can save `R` objects (vectors, data frames, etc.) in a binary format, so as to be loaded later:
+```{r}
+x = 5
+y = list(a=1:2,b=TRUE)
+save(x,y,file="tmp.Rdata")
+rm(x,y)
+gc()
+load("tmp.Rdata")
+x
+y
+```
+
+Note the following:
+
+- The suffixes `Rdata` and `Rda` are interchangable
+- There is a `saveRDS()` function which saves *one* `R` object in a file with suffix `Rds`...this object may be given a new name when read in with `readRDS()`
+

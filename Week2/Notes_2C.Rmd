@@ -1,0 +1,247 @@
+---
+title: "All About Functions"
+author: "36-350 -- Statistical Computing"
+date: "Week 2 -- Fall 2020"
+output:
+  slidy_presentation: 
+    font_adjustment: -1
+---
+
+Why?
+===
+
+It should be clear why we would want to create functions in `R`: 
+
+<b>We want to be able to perform repetitive tasks without repeating code!</b>.
+
+Here's the general structure of a function:
+
+<tt>
+&#35; &lt;comments&gt;<br>
+&lt;function name&gt; = function(&lt;arguments&gt;)<br>
+{<br>
+&nbsp;&nbsp;&lt;stuff&gt; # can include calling other functions, or *itself*<br>
+&nbsp;&nbsp;return(&lt;return value&gt;)<br>
+}
+</tt>
+
+I will go over each of the bracketed segments in turn.
+
+Functions: Comments
+===
+
+As you might expect, it is always good to provide comments at the beginning of a function that explain:
+
+- what the function does;
+
+- what the functional arguments represent;
+
+- what is output;
+
+- etc.
+
+Commentary should be brief but sufficient enough that someone else can read your function and use it properly.
+```{r}
+# Sample_IQR: create a sample of observed IQRs given data drawn from the standard normal distribution
+# Input: number.IQR: the number of IQRs to compute, i.e., the overall number of datasets
+#        dataset.size: the number of draws from the standard normal distribution, per dataset
+# Output: sample.IQR: the interquartile ranges
+```
+
+Functions: Name
+===
+
+Try to pick a name for your function that is descriptive and also not so generic in that it might cause a namespace issue. One way to tell if your function name is used elsewhere is to use the `exists()` function.
+```{r}
+exists("mean")
+exists("Sample_IQR")
+```
+If the return value is `FALSE`, you are good to go.
+
+Functions: Defining Arguments
+===
+
+Function arguments can be assigned default values. Here's an example of a function definition without default values for its arguments...
+```{r}
+# <Comments Here>
+Sample_IQR = function(number.IQR,dataset.size)
+{
+  ...
+}
+```
+
+...and one with default values...
+
+```{r}
+# <Comments Here>
+Sample_IQR = function(number.IQR=100,dataset.size=100)
+{
+  # this part will make sense on the next slide
+  cat("number.IQR = ",number.IQR," dataset.size = ",dataset.size,"\n")  
+}
+```
+
+Of course, you can have a mix.
+
+Functions: Specifying Arguments in Calls
+===
+
+You can explicitly write out the names of arguments when calling a function. Then the arguments can be listed in any order.
+```{r}
+Sample_IQR(dataset.size=10,number.IQR=100)
+```
+
+If you don't explicitly write out the names of the arguments, then you have to be sure to specify the arguments when you call in the exact order they are specified in the function definition. So in the following...
+```{r}
+Sample_IQR(10,100)
+```
+...the 10 would map to `number.IQR` and the 100 to `dataset.size`.
+
+Functions: Specifying Arguments in Calls
+===
+
+Note that `R` is not going to check the types of whatever arguments you pass. It is up to you to check types!
+```{r error=TRUE}
+# <Comments Here>
+Sample_IQR = function(number.IQR=100,dataset.size=100)
+{
+  matrix(rnorm(number.IQR*dataset.size),number.IQR,dataset.size)  
+}
+Sample_IQR("a",FALSE) # An exception is thrown
+Sample_IQR(2,4)
+```
+
+Did you notice something here? There is no call to the `return()` function, but something was returned anyway. Which leads to the next slide...
+
+Functions: Returning Values
+===
+
+There are three ways to return values from a function to its caller:
+
+- call <tt>return(&lt;return value&gt;)</tt> on the last line;
+
+- just place <tt>&lt;return value&gt;</tt> on the last line;
+
+- or call <tt>invisible(&lt;return value&gt;)</tt> on the last line.
+
+`invisible()`: if you specify a variable to capture the output from a function, then the return values are captured, but if you don't specify such a variable, the return values "disappear" rather than be printed out.
+
+Functions: Returning Values
+===
+
+If you want to return more than one value, those values must be tied together in a list. For instance:
+```{r}
+# <Comments Here>
+Sample_IQR = function(number.IQR=100,dataset.size=100)
+{
+  matrix.IQR = matrix(rnorm(number.IQR*dataset.size),number.IQR,dataset.size)
+  sample.IQR = apply(matrix.IQR,1,IQR)         # Yeah, we'll get to apply() eventually.
+  #return(sample.IQR)                          This would work fine if this is all you want.
+  #return(sample.IQR,number.IQR,dataset.size)  Commented out because it will not work.
+  return(list(sample.IQR=sample.IQR,number.IQR=number.IQR,dataset.size=dataset.size))
+}
+```
+
+You would then access the list members via double brackets or via the use of the dollar sign:
+```{r}
+sample.out = Sample_IQR(10,dataset.size=20)
+sample.out[[2]]                                # Access number.IQR, the 2nd listed return value
+sample.out$sample.IQR                          # Access sample.IQR by name
+```
+
+Side Effects
+===
+
+Side effects of functions are actions that functions take that are not directly related to returning value(s). Examples include:
+
+- printing information in the Console (via, e.g., `print()` or `cat()`);
+
+- constructing plots (via, e.g., `hist()` or `plot()`);
+
+- saving data (read on); and
+
+- attempting to change variable values outside the function's scope (read on).
+
+The first three side effects are "normal" and are often seen, whereas the last is something you should avoid unless you *really* know what you are doing.
+
+Side Effects Digression: Saving
+===
+
+A digression on saving data. If you would like to save the values of variables in such a way that you can access them later, and you are not going to visually examine your output, use `save()` (and `load()`):
+```{r error=TRUE}
+x = 1:10
+y = 5
+save(x,y,file="tmp.Rdata")
+rm(x,y)
+exists("x")
+load("tmp.Rdata")
+x
+y
+```
+If you have a data frame that you want to save as, e.g., an ASCII table on disk, use `write.table()`. We will defer looking at this function until later.
+
+Side Effects Digression: Environment
+===
+
+`R` is a "pass-by-value" language, meaning that when we call a function, copies of variables are passed to the function. For example:
+```{r}
+add_one = function(x)
+{
+  x = x+1
+  cat("Inside the function, x = ",x,".\n")
+}
+
+x = 7
+add_one(x)
+x          # Outside the function, x is still 7.
+```
+Changing the value of $x$ in the called function did not result in changing the value of $x$ in the calling function.
+
+Side Effects Digression: Environment
+===
+
+The concept of *environments* in `R` can be tricky to understand. You should consult a text like Hadley Wickham's *Advanced R* if you want to learn more than these basic facts:
+
+- Variable value changes stay local, such as was shown on the last slide.
+
+- If a variable is uninitialized locally, a value for it will be searched for in enclosing environments:
+```{r}
+bad_func = function() { exists("x") } # x is not initialized within bad_func
+x = 7
+bad_func()
+rm(x)
+bad_func()
+```
+
+- You can use the <tt>&lt;&lt;-</tt> operator or the `assign()` function to enact changes outside the local environment. Again: using these is generally an indicator of bad code design, not cleverness; avoid them if at all possible.
+
+Recursion
+===
+
+Note that functions may be called recursively. For instance, here is how you determine the $n^{\rm th}$ value of the Fibonacci sequence beginning 1, 1, 2, 3, ...
+```{r}
+Fibonacci_seq = function(n)
+{
+  if ( n <= 2 ) {
+    return(1)
+  } else {
+    return(Fibonacci_seq(n-1)+Fibonacci_seq(n-2))
+  }
+}
+Fibonacci_seq(3)
+Fibonacci_seq(4)
+Fibonacci_seq(5)
+```
+
+Coding Style
+===
+
+We conclude with a good reference for learning how to "stylishly" code in `R`:
+
+`https://google.github.io/styleguide/Rguide.xml`
+
+Go to this site and internalize the rules. 
+
+However, I respectfully disagree about assignment as `<-` vs. `=`. 
+
+Your mileage may vary.

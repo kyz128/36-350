@@ -1,0 +1,422 @@
+---
+title: "Lab: Week 4"
+author: "36-350 -- Statistical Computing"
+date: "Week 4 -- Fall 2020"
+output:
+  pdf_document:
+    toc: no
+  html_document:
+    theme: spacelab
+    toc: yes
+    toc_float: yes
+---
+
+Name: Kimberly Zhang
+
+Andrew ID: kyz
+
+You must submit **your own** lab as a PDF file on Gradescope.
+
+```{r wrap-hook,echo=FALSE}
+library(knitr)
+hook_output = knit_hooks$get('output')
+knit_hooks$set(output = function(x, options) {
+  # this hook is used only when the linewidth option is not NULL
+  if (!is.null(n <- options$linewidth)) {
+    x = knitr:::split_lines(x)
+    # any lines wider than n should be wrapped
+    if (any(nchar(x) > n)) x = strwrap(x, width = n)
+    x = paste(x, collapse = '\n')
+  }
+  hook_output(x, options)
+})
+```
+
+---
+
+# Apply: Base R
+
+You are given the following 8 $\times$ 8 matrix:
+```{r linewidth=80}
+set.seed(1001)
+mat = matrix(rnorm(64),nrow=8)
+mat[5,8] = mat[6,7] = mat[4,2] = NA
+```
+
+## Question 1
+*(4 points)*
+
+*Notes 4A (6,10,12)*
+
+Compute the mean for each row and for each column using both `apply()` *and* either `rowMeans()` or `colMeans()`. (So there should be four function calls overall.) Deal with the `NA`s by passing (an) additional argument(s) to these functions, when possible.
+```{r linewidth=80}
+apply(mat, 1, mean, na.rm= TRUE)
+rowMeans(mat, na.rm = TRUE)
+apply(mat, 2, mean, na.rm= TRUE)
+colMeans(mat, na.rm = TRUE)
+```
+
+
+## Question 2
+*(4 points)*
+
+*Function writing review*
+
+How does the `Income` variable in `R`'s `state.x77` matrix correlate with other variables? Write a function called `cor_var()` that takes two inputs: `v1`, a numeric vector; and `v2`, another numeric vector whose default value is `state.x77[,"Income"]`. Its output should be the correlation of `v1` and `v2`, computed via the `cor()` function. Check that `cor_var(v1=state.x77[,"Life Exp"])` gives you 0.3402553, and `cor_var(v1=state.x77[,"Income"])` gives you 1.
+```{r linewidth=80}
+cor_var<-function(v1, v2= state.x77[,"Income"]){
+          return (cor(v1, v2))
+}
+cor_var(state.x77[, "Life Exp"])
+cor_var(state.x77[, "Income"])
+```
+
+## Question 3
+*(4 points)*
+
+*Notes 4A (6-7,9-10)*
+
+Using `apply()` and the function `cor_var()` that you defined in the last question, calculate the correlation between each one of the 8 variables in the `state.x77` matrix and the `Population` variable. Display these correlations.
+```{r linewidth=80}
+apply(state.x77, 2, cor_var, v2 = state.x77[, "Population"])
+```
+
+## Question 4
+*(4 points)*
+
+*Notes 4A (6,10)*
+
+Using `apply()` and the base `R` `stats` package function `cor()`, display the Spearman correlation between each one of the eight variables in the `state.x77` matrix and the `Frost` variable. (Note that `Spearman` is not the default value for the `method` argument to the `cor()` function.)
+```{r linewidth=80}
+apply(state.x77, 2, cor, y=state.x77[, "Frost"], method = "spearman")
+```
+
+# Variations on Apply: Base R
+
+## Question 5
+*(4 points)*
+
+*Notes 4B (6)*
+
+Create a data frame called `state.df` from the matrix `state.x77` and the factors `state.region` and `state.division`. Be sure to name the two new columns appropriately. Using `state.df` and `tapply()`, compute the average population in each of the four defined regions of the U.S. Display the name of the region has the largest average population (and only that name). Then compute the average population in each of the nine defined divisions of the U.S., and display the name of the division has the largest average population (and only that name). Hint: the names may be displayed using a combination of `names()` and `which.max()`.
+```{r linewidth=80}
+state.df<-data.frame(state.x77, Region = state.region, 
+                     Division = state.division)
+names(which.max(tapply(state.df$Population, state.df$Region, mean)))
+names(which.max(tapply(state.df$Population, state.df$Division, mean)))
+```
+
+## Question 6
+*(4 points)*
+
+*Notes 4A (5) and Notes 4B (3-4)*
+
+Split the rows of the data frame `state.df` by state divisions, and call the resulting list `state.df.by.div`. Then use `lapply()` to display just the first two rows of each data frame in the list `state.df.by.div`.
+```{r linewidth=80}
+state.df.by.div<-split(state.df, state.division)
+lapply(state.df.by.div, head, n=2)
+```
+
+---
+
+Below, we read in a data table showing the fastest women's 100-meter sprint times.
+```{r linewidth=80}
+sprint.df = read.table("http://www.stat.cmu.edu/~pfreeman/women_100m_with_header.dat",
+                       header=TRUE,stringsAsFactors=FALSE)
+class(sprint.df)
+head(sprint.df)
+```
+
+---
+
+## Question 7
+*(4 points)*
+
+*Review of string processing*
+
+Extract the last four digits of each entry of the `Date` column. (Hint: you will have to use `as.character()` to convert `sprint.df$Date` from a factor variable to strings.) Create a new data frame called `new.sprint.df` that combines `sprint.df` and a new column called `Year` that contains your extracted four-digit years. Display the first five rows and all nine columns of `new.sprint.df`. Display the class of the newly created `Year` column.
+```{r linewidth=80}
+string.col<-as.character(sprint.df$Date)
+date.len<-nchar(string.col)
+years<-substr(string.col, date.len-3, date.len)
+new.sprint.df<-data.frame(sprint.df, Year = years)
+head(new.sprint.df, 5)
+class(new.sprint.df$Year)
+```
+
+## Question 8
+*(4 points)*
+
+*Notes 4B (6)*
+
+Using `tapply()` and the newly created `Year` column, compute the median 100-meter sprint time in each year of the data frame. Call the resulting vector `med.time.by.year`. Create a table of median times. Which median time appears the most, and how many times does it appear? When is the last year that that particular median time appeared in the data?
+```{r linewidth=80}
+med.time.by.year<-tapply(new.sprint.df$Time, new.sprint.df$Year, median)
+sort(table(med.time.by.year), decreasing = TRUE)
+med.time.by.year
+```
+```
+11.03 and 11.04 appeared the most. Both appeared 7 times. The last year 11.03
+appeared was 2014. The last year 11.04 appeared was 2017. 
+
+```
+
+---
+
+Below, we read in a data table related to the political economy of strikes.
+```{r linewidth=80}
+strikes.df = read.csv("http://www.stat.cmu.edu/~pfreeman/strikes.csv")
+class(strikes.df)
+head(strikes.df)
+dim(strikes.df) # Note that since 18 × 35 = 630 > 625, some years missing from some countries
+```
+
+---
+
+## Question 9
+*(4 points)*
+
+*Notes 4A (5) and Notes 4B (5)*
+
+Split `strikes.df` by country, using the `split()` function. Call the resulting list `strikes.by.country`. Using `strikes.by.country` and `sapply()`, compute the average centralization metric (a quantity related to unionization) for each country over the range of years in the file. Display the names of the countries that had the highest and lowest average centralization metric (and only the names of those countries).
+```{r linewidth=80}
+strikes.by.country<-split(strikes.df, strikes.df$country)
+res<-sapply(strikes.by.country, function(x){mean(x$centralization)})
+sorted.res<- names(sort(res, decreasing = TRUE))
+head(sorted.res, 1)
+tail(sorted.res, 1)
+```
+
+## Question 10
+*(4 points)*
+
+*Notes 4B (5)*
+
+Using `strikes.by.country` and `sapply()`, compute a summary of the long-term centralization metric for each country. Study the output---do its dimensions make sense to you?
+```{r linewidth=80}
+sapply(strikes.by.country, function(x){summary(x$centralization)})
+```
+```
+The dimensions make sense because for every country the summary function
+returns a vector of length 6 so there should be 6 rows and whatever number of 
+countries for columns. 
+```
+
+## Question 11
+*(4 points)*
+
+*Notes 4B (5)*
+
+Using `strikes.by.country` and just *one* call to `sapply()`, compute the average unemployment rate, average inflation rate, and average strike volume for each country. The output should be a matrix of dimension 3 x 18. Also, within that call, give the output matrix appropriate row names.
+```{r linewidth=80}
+res<-sapply(strikes.by.country, function(x){
+         return(list("Unemployment"=mean(x$unemployment), 
+                     "Inflation"=mean(x$inflation), 
+                     "Strike Vol"=mean(x$strike.volume)))})
+res
+dim(res)
+```
+
+## Question 12
+*(4 points)*
+
+*Notes 4B (5)*
+
+Using `strikes.df`, `split()`, and `sapply()`, compute the average unemployment rate for each country, before and during 1970, and after 1970. Display the output; it should be a numeric vector of length 36. One way to perform the splitting is to define a new column called `pre1970` that indicates that a year column is less than or equal to 1970. Then use both `country` *and* `pre1970` to do the splitting. If you are not sure how to use both factor variables at once, look at the documentation for `split()`, specifically its argument `f`.
+```{r linewidth=80}
+strikes.df$pre1970 <- ifelse(strikes.df$year <= 1970, 'BeforeDuring1970', 'After1970')
+split.df<-split(strikes.df, list(strikes.df$country, strikes.df$pre1970))
+res<-sapply(split.df, function(x){mean(x$unemployment)})
+length(res)
+res
+```
+
+## Question 13
+*(4 points)*
+
+*Review of matrices*
+
+Using the result from above, display the difference in the average unemployment rate before and after 1970 for each country. (To be clear: subtract the pre-1970 results from the post-1970 results.) Which country had the biggest increase in average unemployment from before to after? The biggest decrease? (Hint: use the output from Q12 to populate a matrix, with pre-1970 results in one column and post-1970 results in another.)
+```{r linewidth=80}
+res.mat<-matrix(res, ncol = 2)
+res.mat[,1] - res.mat[,2]
+```
+Netherlands had the biggest increase in average unemployment from before to 
+after. Austria had the biggest decrease.
+---
+
+Below, we read in Trump's nomination acceptance speech, and process it so as to create individual sentences (minus the final punctuation mark).
+```{r linewidth=80}
+trump.lines = readLines("http://www.stat.cmu.edu/~pfreeman/trump.txt")
+trump.text = paste(trump.lines, collapse=" ")
+trump.sentences = strsplit(trump.text,split="\\. |\\? |\\! |\\.$")
+```
+
+---
+
+## Question 14
+*(4 points)*
+
+*Notes 4B*
+
+Use an appropriate base `R` `apply()`-style function to determine the number of characters in each sentence in Trump's speech. Display the result via `table()`. Utilize `which()` to display the (two) most common number of characters in a Trump sentence.
+```{r linewidth=80}
+res<-sapply(trump.sentences, nchar)
+res.table<-table(res)
+res.table[which(res.table == max(res.table))]
+```
+
+---
+
+```{r linewidth=80}
+suppressWarnings(library(tidyverse))
+```
+
+---
+
+## Question 15
+*(4 points)*
+
+*Notes 4C (4-6)*
+
+Convert the following base `R` code so as to utilize pipes. (Feel free to run the base `R` code first to see the expected output, both here and in other code chunks below. Also: don't forget about dot notation! It will help you at various points...)
+```{r linewidth=80}
+paste(toupper(letters), collapse="+")
+
+letters %>% toupper(.) %>% paste(. , collapse = "+")
+```
+
+## Question 16
+*(4 points)*
+
+*Notes 4C (4-6,8-9)*
+
+Convert the following base `R` code so as to utilize pipes. (`trimws` means "trim white space"; `gsub` was covered at the very end of the notes in Week 3.)
+```{r linewidth=80}
+trimws(gsub("une", "un", "     Ceci n'est pas une pipe     "))
+
+gsub("une", "un", "     Ceci n'est pas une pipe     ") %>% trimws(.)
+```
+
+## Question 17
+*(4 points)*
+
+*Notes 4C (4-6,8-9)*
+
+Convert the following base `R` code so as to utilize pipes.
+```{r linewidth=80}
+state.name[which.max(state.x77[,"Illiteracy"])]
+
+which.max(state.x77[,"Illiteracy"]) %>% state.name[.]
+```
+
+## Question 18
+*(4 points)*
+
+*Notes 4C (4-6,8-9)*
+
+Convert the following base `R` code so as to utilize pipes. (Hint: when dealing with `words = words[words != ""]`, you'll want to utilize dot notation...and to realize that you can use a dot more than once in an expression. A dot may be used as if it was any other variable.)
+```{r linewidth=80}
+str.url = "http://www.stat.cmu.edu/~pfreeman/clinton.txt"
+lines = readLines(str.url)
+text = paste(lines, collapse=" ")
+words = unlist(strsplit(text, split="[[:space:]]|[[:punct:]]"))
+words = words[words != ""]
+wordtab = table(words)
+wordtab = sort(wordtab, decreasing=TRUE)
+head(wordtab, 10)
+
+"http://www.stat.cmu.edu/~pfreeman/clinton.txt" %>%  readLines(.) %>% 
+paste(. , collapse = " ") %>% strsplit(., split="[[:space:]]|[[:punct:]]") %>% 
+  unlist(.) %>% .[. != ""] %>% table(.) %>% sort(., decreasing = TRUE) %>% 
+  head(. , 10)
+
+```
+
+---
+
+## Question 19
+*(4 points)*
+
+*Pipes + Notes 4D (6)*
+
+How does the `Frost` variable in `R`'s `state.x77` matrix correlate with other variables? Cast `state.x77` to a data frame, and, using pipes, generate the correlation matrix for `Frost` and `Life.Exp`. (Note that the act of casting changed the name of the life expectancy column from `Life Exp` to `Life.Exp`.) The off-diagonal elements of the matrix should be 0.262068.
+```{r linewidth=80}
+state.x77 %>% data.frame(.) %>% cor(.)
+
+```
+
+## Question 20
+*(4 points)*
+
+*Pipes + Notes 4D (9)*
+
+Take the `state.df` data frame defined below and mutate it so as to create a new column: `GradLit`. This column should have, for each row in the data frame, the percentage of high school graduates divided by the percentage of literate (note: *literate*, not *illiterate*) individuals, times 100. Then pipe the output so as to compute the median value of `GradLit`. (There is a bit of weirdness here: due to environmental issues, your call to `median()` will not work unless it is placed within curly braces. You are only surrounding `median()` with curly braces...not the entire pipe stream!) Your final value should be 53.59844.
+```{r linewidth=80}
+state.df %>% mutate(., GradLit = HS.Grad/(100-Illiteracy)*100) %>% 
+  {median(.$GradLit)}
+```
+
+## Question 21
+*(4 points)*
+
+*Pipes + Notes 4D (5,6,8)*
+
+Take the `state.df` data frame and (1) select all states in the South region, and (2) display the result ordered by the decreasing product of income and life expectancy. In the end, display just the state name and the computed product. There is a quirk here: selecting rows can lead to the loss of row names. (This means that here, you will have a final result but not know which states they correspond to.) To preserve the identity of the states, pipe `state.df` to the function `rownames_to_column("give column name here, like State")`, then do the rest of your piping.
+```{r linewidth=80}
+state.df %>% rownames_to_column("State") %>% filter(., Region == "South") %>% 
+  mutate(. , product = .$Income*.$Life.Exp) %>% 
+arrange(., desc(product)) %>% select(., State, product)
+```
+
+---
+
+Below we read in a data frame `pros.df` containing measurements on men with prostate cancer. For details on the individual columns, see [this web page](https://rafalab.github.io/pages/649/prostate.html).
+```{r linewidth=80}
+pros.df = read.table("http://www.stat.cmu.edu/~pfreeman/pros.txt")
+head(pros.df)
+```
+
+---
+
+## Question 22
+*(4 points)*
+
+*Pipes + Notes 4D (5-6)*
+
+Among the men whose `lcp` value is equal to its minimum value, report the lowest and highest `lpsa` score. (Hint: look up the `range()` function.)
+```{r linewidth=80}
+pros.df %>% filter(., lcp == min(lcp)) %>% range(.$lpsa)
+```
+
+## Question 23
+*(4 points)*
+
+*Pipes + Notes 4D (5-6,8)*
+
+Order the rows by decreasing `age`, then decreasing `lpsa` score, and display the rows from men who are older than 70, but only the `age`, `lpsa`, `lcavol`, and `lweight` columns.
+```{r linewidth=80}
+pros.df %>% arrange(., desc(age), desc(lpsa)) %>% filter(., age > 70) %>% 
+  select(., age, lpsa, lcavol, lweight)
+```
+
+## Question 24
+*(4 points)*
+
+*Pipes + Notes 4D (6,8,11)*
+
+Display the first six rows of the `lpsa` column only, in decreasing order, with the column renamed as `Log.Prostate.Specific.Antigen`.
+```{r linewidth=80}
+pros.df %>% arrange(., desc(lpsa)) %>% select(., lpsa) %>% 
+  rename(., Log.Prostate.Specific.Antigen=lpsa) %>% head(.)
+```
+
+## Question 25
+*(4 points)*
+
+*Pipes + Notes 4D (6)*
+
+We haven't officially covered plotting yet, but...utilize piping and selection to make a basic `R` plot showing `lpsa` along the x-axis and `lcavol` along the y-axis. Include the argument `pch=19` in the call to `plot()`. Hint: when a two-column data frame is passed to `plot()`, it will by default map the first column to the x-axis and the second column to the y-axis.
+```{r linewidth=80}
+pros.df %>% select(., lpsa, lcavol) %>% plot(., pch=19)
+```

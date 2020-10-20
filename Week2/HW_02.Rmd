@@ -1,0 +1,182 @@
+---
+title: "HW: Week 2"
+author: "36-350 -- Statistical Computing"
+date: "Week 2 -- Fall 2020"
+output:
+  pdf_document:
+    toc: no
+  html_document:
+    toc: true
+    toc_float: true
+    theme: spacelab
+---
+
+Name: Kimberly Zhang  
+
+Andrew ID: kyz
+
+You must submit **your own** homework as a PDF file on Gradescope.
+
+```{r wrap-hook,echo=FALSE}
+library(knitr)
+hook_output = knit_hooks$get('output')
+knit_hooks$set(output = function(x, options) {
+  # this hook is used only when the linewidth option is not NULL
+  if (!is.null(n <- options$linewidth)) {
+    x = knitr:::split_lines(x)
+    # any lines wider than n should be wrapped
+    if (any(nchar(x) > n)) x = strwrap(x, width = n)
+    x = paste(x, collapse = '\n')
+  }
+  hook_output(x, options)
+})
+```
+
+---
+
+## Question 1
+*(10 points)*
+
+Write a `for()` loop to multiply the matrices `A` and `B` defined below. Call the result `C`, and check that it matches the result of direct matrix multiplication by comparing with the output of `A%*%B` (i.e., print both `C` and `A%*%B`). Hint: you'll need to nest at least one `for()` loop within another. (Remember that to perform matrix multiplication, we need to sum the products of the $i^{th}$ row of `A` and the $j^{th}$ column of `B`: this becomes the $(i,j)^{th}$ element of the matrix `C`.)
+```{r linewidth=80}
+A = matrix(c(-0.1,-0.3,0.7,-0.6, 0.0,-0.1          ), 3, 2)
+B = matrix(c( 0.6,-0.7,0.9,-0.7,-0.7, 0.8, 0.0,-0.7), 2, 4)
+C = matrix(0,3,4)
+
+for (r in 1:nrow(A)){
+  for (c in 1:ncol(B)){
+    C[r, c]= sum(A[r, ]*B[,c])
+  }
+}
+print(C)
+print(A%*%B)
+```
+
+## Question 2
+*(10 points)*
+
+Write a `for()` loop, that loops up to 1000 times, that samples a single datum from a standard normal. In order, in the loop, sample the single datum using `rnorm()`, utilize `next` if that datum is less than 1, then print the index of the datum (via `cat()` with a following line break, i.e., "\\n"), and last utilize `break` if the datum is greater than 2. (The last digit shown should be very much less than 1000. The expected value of the number of times we would sample from a standard normal before observing a value greater than 2 is given by `1/p = 1/(1-pnorm(2))`, which is about 44.)
+```{r linewidth=80}
+for (ii in 1:1000){
+  datum= rnorm(1)
+  if (datum < 1) next
+  if (datum >= 1) cat(ii, '\n') 
+  if (datum > 2) break
+}
+```
+
+## Question 3
+*(10 points)*
+
+Write a `while()` loop that simulates the flipping of eight coins and loops until all eight coins are heads or all eight coins are tails, at which point you should break out of the loop. Define a counter that increments by one every time through the loop, and print the value of that counter after you break out of it. For full credit, utilize an `if` construct with a logical `or`. (Hint: `rbinom(1,8,0.5)` returns the number of successes when flipping a fair coin eight times.)
+```{r linewidth=80}
+counter= 0
+while(TRUE){
+  flipSet= rbinom(1, 8, 0.5)
+  if (flipSet == 8 || flipSet == 0) break
+  counter = counter + 1
+}
+print(counter)
+```
+
+## Question 4
+*(20 points)*
+
+A rite of passage for every parent is informing his or her three-year-old child that "Despite how happy you were to beat me, winning at Chutes and Ladders doesn't actually require any skill." Here, you will write a `while()` loop that simulates a single game of Chutes and Ladders. First, see the image of the game board at http://vignette4.wikia.nocookie.net/uncyclopedia/images/d/d8/Chutes%26Ladders1.gif/revision/latest?cb=20090809223310. Here are the rules, in case you've forgotten or never played: you start at 0 (off the board) and spin a spinner that randomly selects an integer between 1 and 6, inclusive. (You can think of this as rolling a fair six-sided die. Use `sample()`.) Move your piece that number of spaces. If you end up at the bottom of a ladder, you move to the top of the ladder (so if you are at 0 and spin a 4, you end up at 14); if you end up at the top of a chute, you move to the bottom of the chute. (Beware space 87!) The game ends when you reach 100 exactly (so, for instance, if you are at 97 and spin a 4, you do not move...but if you spin a 1, you move to 98 and slide down the chute to 78). (Note that *you are the only one playing* the game: it's the world's most boring version of Solitaire.) (Hint: after each spin and move, use `which()` to determine which element of, e.g., the vector `ladder.bottom` equals your new position. Call the output of `which()` "`w`". If the length of `w` is greater than zero, then you are at the bottom of a ladder, so you'd reset your position to the corresponding top of the ladder: `ladder.top[w]`. You'd repeat this process, checking if you are at the top of a chute. Hint II: remember...if your new position after a spin is greater than 100, you don't move!)
+```{r linewidth=80}
+currentPos= 0
+ladder.top= c(38, 14, 31, 42, 84, 44, 67, 91, 100)
+ladder.bottom= c(1, 4, 9, 21, 28, 36, 51, 71, 80)
+chute.top= c(16, 47, 49,56, 62, 64, 87, 93, 95, 98)
+chute.bottom= c(6, 26, 11,53, 19, 60, 24, 73, 75, 78)
+while(currentPos != 100){
+  roll= sample(6, 1)
+  if (currentPos + roll > 100) next
+  currentPos= currentPos + roll
+  ladderPos= which(currentPos==ladder.bottom)
+  chutePos= which(currentPos==chute.top)
+  if (length(ladderPos)!=0){
+    currentPos= ladder.top[ladderPos]
+  }else if (length(chutePos)!=0){
+    currentPos= chute.bottom[chutePos]
+  }
+}
+```
+
+## Question 5
+*(10 points)*
+
+Create a function `char2int()` that returns the position of the input character value in the English alphabet. For instance, "A" returns 1 and "z" returns 26. Make use of `R`'s built-in constants (see, e.g., `?Constants`), and perform checks on the input: return `NULL` if the input is not of type `character`, if the input string contains more than one character, or if the input string contains non-alphabetical characters. (Also, limit the length of the input vector of strings to one.) Comments are optional. Test your function with inputs 1, "abc", "2", c("a","b"), and "m". Only the last input should yield a non-NULL output. **NOTE**: do not use the `match()` function anywhere in your function! It would do the job of `char2int()` trivially, but the idea here is to build your own function that mimics what `match()` is doing.
+```{r linewidth=80}
+char2int= function(s){
+  if(length(s) != 1 || is.character(s) == FALSE || 
+     is.element(tolower(s), letters) == FALSE){
+    return (NULL)
+  } else{
+    return (which(tolower(s)==letters))
+  }
+}
+char2int(1)
+char2int("abc")
+char2int("2")
+char2int(c("a", "b"))
+char2int("m")
+```
+
+## Question 6
+*(10 points)*
+
+Write a function `h()` that returns a function; that second function, given an input $y$, should return $-y$ if the input to `h()` is negative or $y$ if the input to `h()` is zero or positive. Test your `h()` function given inputs $-2$, 0, and 2.
+```{r linewidth=80}
+h= function(x){
+   return (function(y){ifelse(x<0, -1, 1)*y})
+}
+z= h(-2)
+z(5)
+z= h(0)
+z(5)
+z= h(2)
+z(5)
+```
+
+## Question 7
+*(10 points)*
+
+Improve your recursive factorial function from Lab 2 to include a check that the input value is either zero or a positive integer. Have the function return `NULL` otherwise. Compute 5!, 0!, -5!, and "a"!. If in the last case you get a thrown exception rather than an output value of `NULL`, think about the sequence of checks you need to do here. (Possibly useful information: 0! = 1.)
+```{r linewidth=80}
+my_factorial= function(n){
+  if (is.numeric(n) == FALSE || n < 0){
+      return(NULL)
+  } else {
+    return(ifelse(n==0 || n==1, 1, n*my_factorial(n-1)))
+  }
+}
+my_factorial(5)
+my_factorial(0)
+my_factorial(-5)
+my_factorial("a")
+```
+
+## Question 8
+*(20 points)*
+
+The Babylonians devised the following algorithm to compute $\sqrt{x}$, using only basic arithmetic operations. First one guesses the root $r$; for instance, $r=x/2$. Then, either $r^2 > x$ or $r^2 < x$. (Unless we are dealing with perfect squares, $r^2 = x$ is just not gonna happen.) We replace $r$ with the average of $r$ and $x/r$ and repeat. Write a function `root()` that takes as input $x$ and a tolerance $t$ that dictates when you've converged to a solution, i.e., when $|r^2 - x| \leq t$ you stop. Make $10^{-6}$ the default value for $t$. Your `root()` function should output a list with two elements: `sqrt.x`, the value of $r$ at convergence; and `n.iter`, the number of iterations required to achieve convergence. Display results for $x$ = 11, 101, and 1001, and compare those results to those achieved by using the `sqrt()` function (by computing the absolute difference between `sqrt.x` and the output of `sqrt()`). How many iterations were needed to achieve convergence in each case? (Answer this by displaying the number of iterations; you don't need to add text to your answer.) Note: you need not add comments here if you choose not to. Just remember: in real life, you should always add comments so that others can understand your code.
+```{r linewidth=80}
+root= function(x, t=10^-6){
+  n.iter=1
+  r= x/2
+  square= r^2
+  while(abs(square-x) > t){
+    r= mean(c(r, x/r))
+    square= r^2
+    n.iter = n.iter + 1
+  }
+  return(list(sqrt.x=r, n.iter= n.iter))
+}
+for (ii in c(11, 101, 1001)){
+  res= root(ii)
+  cat("x=",ii, " Root:", res$sqrt.x, " Diff:", 
+      abs(sqrt(ii) - res$sqrt.x), " Iterations:", 
+      res$n.iter, "\n")
+}
+```

@@ -1,0 +1,131 @@
+---
+title: "Sampling and Integration"
+author: "36-350 -- Statistical Computing"
+date: "Week 6 -- Fall 2020"
+output: 
+  slidy_presentation: 
+    font_adjustment: -1
+---
+
+```{r,echo=FALSE}
+set.seed(101)
+```
+
+Motivation
+===
+
+Assume you have to compute an integral of the form
+$$
+\int_a^b g(x) dx ~~{\rm or}~~ \int_a^b g(x) f(x) dx
+$$
+and you cannot do it analytically. If it is of the type to the left, above, then one can utilize random sampling in what is dubbed *Monte Carlo integration*. If it is of the type to the right, and $f(x)$ is a probability density function, one can utilize *importance sampling*.
+
+We note here that MC integration and importance sampling do not provide any computational advantages when one is dealing with low-dimensional integrals; for instance, for univariate integrals, one can use `integrate()` or code up Simpson's rule, etc., and get an accurate answer just as fast (or faster). (This point will be underscored in the examples below.) These methods are most useful in higher-dimensional contexts where brute force approaches just take too long. However, for simplicity, we will illustrate them here using univariate integrals.
+
+Monte Carlo Integration
+===
+
+MC integration utilizes the Law of Large Numbers to turn a basic integral into the computation of an expected value:
+$$
+\int_a^b g(x) dx = \int_a^b \frac{g(x)}{f(x)} f(x) dx = \int_a^b w(x) f(x) dx = E_f[w(X)] \,.
+$$
+Here, $f(x)$ is a pdf whose domain is $[a,b]$. For instance, one can utilize the uniform distribution: $f(x) = 1/(b-a)$. (MC integration is the Law of the Unconscious Statistician in action!)
+
+Why do we bother? We bother because
+$$
+E_f[w(X)] \approx \frac{1}{N} \sum_{i=1}^N w(x_i) = \frac{1}{N} \sum_{i=1}^N \frac{g(x_i)}{f(x_i)} \,.
+$$
+In other words, to estimate the original integral, "all we do" is sample $N$ values $\{x_1,x_2,\ldots,x_N\}$
+from the pdf $f(x)$ (using methods in the last set of notes), and plug them into the summation (since we can easily evaluate both $g(x)$ and $f(x)$).
+
+Monte Carlo Integration: Example
+===
+
+Let's assume we want to compute the following:
+$$
+\int_0^2 e^x \cos^3(x) dx
+$$
+
+Here we go:
+```{r}
+set.seed(808)
+g = function(x) {
+  exp(x)*cos(x)^3
+}
+x = runif(1000,min=0,max=2)  # f(x) = 1/2
+w = g(x)/(1/2)
+print(mean(w))
+```
+
+Let's compare this with `integrate()`:
+```{r}
+integrate(g,0,2)$value
+```
+
+Decently close. The standard error is $S_w/\sqrt{N}$, i.e., the sample standard deviation of our vector of values $w$ divided by the square root of the number of samples. Here, the standard error is $\approx$ 0.03, so the deviation of the MC integral estimate from that of `integrate()` is not surprising. To drive down the error, use the largest value of $N$ that you can.
+
+Importance Sampling
+===
+
+Importance sampling is very similar to MC integration, as you will see. Here we are trying to compute
+$$
+\int_a^b g(x) f(x) dx = E_f[g(X)] \,,
+$$
+where $f(x)$ is a pdf *from which one cannot easily sample data*. (If you could, you'd just use MC integration like we did above to compute $E_f[g(X)]$.) As we can see, importance sampling is connected with the Law of the Unconscious Statistician; as wikipedia says, it is "a general technique for estimating properties of a particular distribution" (e.g., if $g(x) = x$, we are estimating the mean of $f(x)$, etc.).
+
+So we in essence repeat the step that we made in MC integration: we invoke yet another distribution, $h(x)$, *from which we can easily sample data*. Thus
+$$
+\int_a^b g(x)f(x)dx = \int_a^b \left[ \frac{g(x)f(x)}{h(x)} \right] h(x) dx = E_h\left[ \frac{g(X)f(X)}{h(X)} \right] \approx \frac{1}{N} \sum_{i=1}^N \frac{g(x_i)f(x_i)}{h(x_i)} \,.
+$$
+
+Importance Sampling
+===
+
+Unlike the situation in typical MC integration, where the choice of distribution to sample from is straightforward (e.g., the uniform distribution), choosing a *proposal distribution* $h(x)$ in importance sampling is a bit trickier. That's because the variance of the importance sampling integration estimator becomes smaller as $h(x)$ gets "closer" to $f(x)$. 
+
+Basic heuristic: $h(x)$ should have at least the same domain as $f(x)$ and should concentrate its density where $f(x)$ does, but $h(x)$ should have slightly thicker tails.
+
+Importance Sampling: Example
+===
+
+I have the following goofy pdf:
+$$
+f(x) = \left\{ \begin{array}{cc} \frac{1}{\sqrt{2\pi}} e^{-x^2} & x < 0 \\ 1 & x \in [0,1/2] \\ 0 & \mbox{otherwise} \end{array} \right.
+$$
+What is the mean of this distribution?
+$$
+E_f[X] = \int_{-\infty}^{1/2} x f(x) dx = \int_{-\infty}^{\infty} g(x) f(x) dx \,,
+$$
+where $g(x) = x$ if $x \leq 1/2$ and 0 otherwise. I changed the bounds because it allows me to use a normal as my proposal distribution:
+$$
+E_f[X] = \int_{-\infty}^{\infty} \frac{g(x)f(x)}{h(x)} h(x) dx = E_h\left[\frac{g(X)f(X)}{h(X)}\right] \,,
+$$
+where $h(x)$ is, e.g., a N(0,2) pdf. (Thicker tails than the original pdf.)
+
+Importance Sampling: Example
+===
+
+```{r}
+set.seed(505)
+N = 100000
+x = rnorm(N,mean=0,sd=sqrt(2)) # Sample x samples from the proposal distribution h(x)
+h = dnorm(x,mean=0,sd=sqrt(2)) # Evaluate h(x)
+g = rep(0,N)
+g[x<=0.5] = x[x<=0.5]    # Evaluate g(x)
+f = function(x) {        # Evaluate f(x)
+  f.x = rep(0,length(x))
+  f.x[x<=0] = dnorm(x[x<=0])
+  f.x[x>0&x<=0.5] = 1
+  return(f.x)
+} 
+mean(g*f(x)/h)
+sd(g*f(x)/h)/sqrt(N)
+```
+
+Compare this to the result of using `integrate()`:
+```{r}
+integrand = function(x) {
+  return(x*f(x))
+}
+integrate(integrand,-Inf,0.5)$value
+```

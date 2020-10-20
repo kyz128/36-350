@@ -1,0 +1,178 @@
+---
+title: "Optimization"
+author: "36-350 -- Statistical Computing"
+date: "Week 7 -- Fall 2020"
+output: 
+  slidy_presentation: 
+    font_adjustment: -1
+---
+
+```{r,echo=FALSE}
+set.seed(101)
+```
+
+Motivation
+===
+
+Let's say you've a dataset like this one:
+```{r,echo=FALSE}
+my.data = rpois(30,lambda=8)
+```
+```{r,fig.align='center',fig.width=6,fig.height=3}
+hist(my.data,xlab=NULL,xlim=c(0,max(my.data)))
+```
+Two questions naturally arise:
+
+- from what family of distributions were these data sampled? (normal? Poisson?)
+
+- what are the values of the parameters for that family of distributions? (what are the true values of $\mu$ and $\sigma$, conditional on the normal distribution being the correct one?)
+
+Optimization is the action of answering the second question, and providing information that can help you answer the first one. (Note that in fitting models, we don't just fit distributions to data, but we'll start there...)
+
+Optimization is a **broad** topic, [as indicated here](https://cran.r-project.org/web/views/Optimization.html). In this set of slides I will point
+you towards basic workhorse optimization functions.
+
+Optimization: an Intuitive Picture
+===
+
+In most basic terms, optimization is the action of taking a function $y = f(x \vert \theta)$, where $x$ are, e.g., observed data and $\theta$ are, e.g., distribution parameter(s), and (numerically) finding the value(s) of $\theta$ that minimize(s) $y$.
+
+In statistics, a common example of $f(\cdot)$ is the negative log-likelihood function. Let's assume we are dealing with a Poisson distribution. In this context, $\theta = \lambda$ and $y = f(x \vert \theta) \propto - \sum_i (x_i \log \lambda - \lambda)$. We want to find $\lambda$ such that $y$ is minimized. You learned (right?) how to do this analytically in 36-226. 
+
+Here we show how to do this numerically, since the *vast majority of optimization problems in statistics can only be approached numerically*. If you examine all the distributions that are listed in, e.g., Wikipedia, you'd be surprised by how few there are for which you can perform maximum likelihood estimation with pencil and paper. (Those are the ones you get tested on in 36-226!)
+
+Optimization: an Intuitive Picture
+===
+
+```{r}
+f = function(x,lambda) {
+  return(-sum(x*log(lambda)-lambda))
+}
+lambda.test = seq(5,11,by=0.01)
+neg.log.like = rep(NA,length(lambda.test))
+for ( ii in seq_along(lambda.test) ) {
+  neg.log.like[ii] = f(my.data,lambda.test[ii])
+}
+plot(lambda.test,neg.log.like,typ="l")
+abline(v=8.13,col="firebrick1")
+cat("lambda.hat = ",lambda.test[which.min(neg.log.like)],"\n")
+```
+
+Optimization: Local vs. Global
+===
+
+Not all lines or surfaces to be optimized over behave simply:
+
+<center>![](http://www.stat.cmu.edu/~pfreeman/global.png){width=600px}</center>
+
+Optimization: Local vs. Global
+===
+
+Local: 
+
+- Start at a point in parameter space ($\hat{\mu}$,$\hat{\sigma}$) and compute the fit metric at locations "adjacent to" that point. For one of these locations, the fit metric will be minimized. Shift your estimate ($\hat{\mu}$,$\hat{\sigma}$) to that location (if you don't estimate the derivative of the fit metric) or in that direction (if you do). Iterate until you cannot move anymore.
+
+- Advantage: fast. Disadvantage: how do you know you started in a good location in parameter space? The fit metric minimum you reach might not be the global minimum...it might just be a local one and you wouldn't necessarily know it.
+
+Global:
+
+- Start at a point in parameter space ($\hat{\mu}$,$\hat{\sigma}$) and compute the fit metric at locations "adjacent to" that point, or on a grid of values, etc. Don't necessarily move towards minima, and search over the whole parameter space (as well as you are able to). Iterate until you've decided you've had enough, and adopt the value ($\hat{\mu}$,$\hat{\sigma}$) for which the fit metric was minimized.
+
+- Advantage: will *maybe* eventually find the global fit metric minimum. Disadvantage: slow.
+
+Local Optimization: optim()
+===
+
+Usage: `optim(par,fn,...)`
+```{r}
+set.seed(101)
+my.data = rnorm(30,mean=4,sd=1.25)
+
+# Return negative log-likelihood for normal distribution.
+# par[1] = mu  par[2] = sigma
+my.fit.fun = function(my.par,my.data)
+{
+  -sum(log(dnorm(my.data,mean=my.par[1],sd=my.par[2])))                    # See Lab 07 for a derivation.
+}
+my.par = c(5,1) # initial guesses for mu and sigma
+optim.out = optim(my.par,my.fit.fun,my.data=my.data,method="Nelder-Mead")  # don't compute gradient
+optim.out$value # the minimum of -log.likelihood
+optim.out$par   # true values are 4 and 1.25
+```
+```{r,fig.align='center',fig.width=6,fig.height=4.5}
+hist(my.data,prob=TRUE,main=NULL,xlab=NULL,ylim=c(0,0.4))
+x = seq(min(my.data),max(my.data),by=0.01)
+lines(x,dnorm(x,mean=optim.out$par[1],sd=optim.out$par[2]))
+```
+
+See also: `nlm()`
+
+Local Optimization: optim()
+===
+
+Here we add a function that computes the gradient of the fit metric, for more efficient optimization.
+```{r}
+my.fit.gradient = function(my.par,my.data)
+{
+  # requires taking partial derivatives of the fit metric with respect to mu (first element of output)
+  #   and sigma (second element of output)
+  c(sum(my.par[1]-my.data)/my.par[2]^2,-sum((my.data-my.par[1])^2)/my.par[2]^3+length(my.data)/my.par[2])
+}
+my.par = c(5,1) # initial guesses for mu and sigma
+# compute gradient
+optim.out = suppressWarnings(optim(my.par,my.fit.fun,gr=my.fit.gradient,my.data=my.data,method="BFGS"))  
+optim.out$value # the minimum of -log.likelihood
+optim.out$par   # true values are 4 and 1.25
+```
+
+Local One-Parameter Optimization: optimize()
+===
+
+Usage: `optimize(f,interval,...)`
+
+"The function `optimize` searches the interval...for a minimum...of the function `f` with respect to its first argument."
+```{r}
+# Return negative log-likelihood for normal distribution with fixed mean.
+my.fit.fun.sd = function(sigma,my.data,my.mu)  # R assumes first argument (sigma) lies within interval
+{
+  -sum(log(dnorm(my.data,mean=my.mu,sd=sigma)))
+}
+# search for the optimum value of sigma between 0.1 and 5, conditional on mu being 4
+optim.out = optimize(my.fit.fun.sd,interval=c(0.1,5),my.data=my.data,my.mu=4)
+optim.out # true value 1.25
+```
+
+Local (Linearly) Constrained Optimization: constrOptim()
+===
+
+Usage: `constrOptim(theta,f,grad,ui,ci,...)`
+
+As a purely academic exercise, let's suppose we wish to put a linear constraint upon the fit, like $\mu + \sigma \geq 6$. We can do that here.
+
+The constraint(s) are specified as `ui %*% theta - ci >= 0`. `theta` is your parameter vector (here, the column vector with $\mu$ above and $\sigma$ below). For our particular example, `ui` is the 1 $\times$ 2 matrix (1,1) and `ci` is 6. (Write it out...once you do the math, you will see that we get the constraint we defined above.)
+```{r}
+my.par = c(5,1.5) # initial guesses for mu and sigma -- must be in feasible region!
+ui = matrix(c(1,1),nrow=1)
+ci = 6
+optim.out = constrOptim(my.par,my.fit.fun,grad=NULL,ui=ui,ci=ci,my.data=my.data)
+optim.out$value     # the minimum of -log.likelihood
+optim.out$par       # true values are 4 and 1.25
+sum(optim.out$par)  # on the boundary
+```
+
+Note that this is related to methods of *convex optimization*, which are beyond the scope of this class. For more details on convex optimization using `R`, see [this 2014 paper in the Journal of Statistical Software](http://www.stat.cmu.edu/~pfreeman/ConvexOpt.pdf) by Roger Koenker and Ivan Mizera.
+
+Global Optimization: a Plethora of Options
+===
+
+For an overview of global optimization methods in `R`, see [this 2014 paper in the Journal of Statistical Software](http://www.stat.cmu.edu/~pfreeman/GlobalOpt.pdf) by Katherine Mullen.
+
+Some terms to use in your Google searches if you are looking to try global optimization:
+
+- "simulated annealing"...this algorithm can be applied in `optim()` if you set `method="SANN"`
+
+- "genetic algorithms" (e.g., as implemented in the `GA` package), or "evolutionary algorithms"
+
+- "particle swarm"
+
+- "branch and bound" (but note that such an algorithm is most often used for *combinatorial optimization*, which is finding the optimum object from a finite set of objects...what we cover in this set of slides is continuous optimization)

@@ -1,0 +1,40 @@
+Subm_ID   	|_.Score  |_.Sigma_s |_.Detection_image  |_.Modeling_window |_.Chi2|_.Penalty_term |_.Object_filtering |_.PSF sampling step |_.PSF interpolation kernel |_.Size of the PSF model [in PSF 'pixels'] |_.Notes |_.Subm_Number |
+A_SP_0.0   |  80.9  |  0.25	| No 				| Free 		| Modified	  | None 		  | Objects with  abs(rho) > 0.9 were discarded |1.0 |  Lanczos3  | 47x47 | All detected objects were considered; different galaxy weighting | 1 |
+A_SP_0.1   |  100.3  |  0.25 |  No 				| Free 			| Modified	  | None 		  | Objects with  abs(rho) > 0.9 were discarded | 1.0 |  Lanczos3  | 47x47   |  All detected objects were considered | 2 |
+A_SP_0.4   |  579.8  |  1.0 |  No 				| Free 			| Modified	  | None 		  | Objects with  abs(rho) > 0.9 were discarded | 1.0 |  Lanczos3  | 47x47 | All detected objects were considered| 5 |
+A_SP_1.0   |  120.4  |   0.25	|  No 				| Free 		| Modified		  | None 	 | None 		| 1.0 |  Lanczos3  | 47x47 |All detected objects were considered| 11 |
+A_SP_1.7   |  78.5  |  10.0 	|   No 				| Free 		| Modified		  | None 	  | None 		| 1.0 |  Lanczos3  | 47x47  | All detected objects were considered | 18 |
+A_SP_1.9   |  939.1    |    1.0 |  No 				| Fixed		| Modified		  | None 		  | None   |	1.0 |  Lanczos3  | 47x47 | All detected objects were considered | 20 |
+A_SP_2.3   |  43.8  | 0.05 |   No 				| Fixed			| Modified	  | None 		  | None  	| 1.0 |  Lanczos3  | 47x47 | All detected objects were considered  | 24 |
+A_SP_2.7   |  177.4    | 0.5  |    No 				| Fixed		| Modified		  | None 		  | None	| 1.0 |  Lanczos3  | 47x47 | All detected objects were considered  | 28 |
+A_SP_3.1   |  126.6  |  5.0  |    No 				| Fixed		| Modified		  | None 		  | None	| 1.0 |  Lanczos3  | 47x47 | All detected objects were considered  | 32 |
+A_SP_3.5   |  84.3    |  0.25 |    No 				| Fixed		| Modified		  | None 		  | None 	| 1.0 |  Lanczos3  | 47x47 | All detected objects were considered  | 36 |
+A_SP_3.9   |  248.0  | 1.0  |    No 				| Fixed		| Modified		  | None 		  | None	| 1.0 |  Lanczos3  | 47x47 |  Different detect/assoc settings, allowed range for Sersic index: [0.3,6.0]  | 40 |
+A_SP_4.3   |  78.6  | 0.15  |    No 				| Fixed		| Modified		  | None 		  | None	| 1.0 |  Lanczos3  | 47x47 |  - | 44 |
+A_SP_4.7   |  653.4  |  1.0 | Yes | 	Fixed		| Regular		  | None 		  | None   	| 0.6 |  Lanczos4  | 77x77 | -|  48 |
+A_SP_4.9   |  239.8   |0.5   |   Yes | Fixed		| Regular		  | None 		  | None 	| 0.6 |  Lanczos4  | 77x77 |- | 50 |
+A_SP_5.2   |  110.4    | 0.25 |  Yes | Fixed		| Regular		  | None 		  | None 	| 0.6 |  Lanczos4  | 77x77 |-    | 53 |
+A_SP_5.6   |  807.4|   1.0 | Yes 	| Fixed		| Regular		  | None 		  | Excluding objects with SNR<5   	| 0.6 |  Lanczos4  | 77x77 | -| 57 |
+A_SP_6.0   |  688.2|  1.0 | Yes 	| Fixed	| Regular			  | None 		  | None   | 	0.6 |  Lanczos4  | 91x91 | - | 61 |
+A_SP_6.3   |  708.9|  1.0 | Yes 	| Fixed		| Regular		  | None 		  | Excluding the 20 obj. in each galaxy catalog with the highest CHI2_MODEL value   | 	0.6 |  Lanczos4  | 91x91  | - | 64 |
+A_SP_6.7   |  367.3| 1.0 | Yes 	| Fixed		| Regular		  | None 		  | Excluding the 20 obj. in each galaxy catalog with the highest CHI2_MODEL value and the objects with abs(rho) > 0.9  |	0.6 |  Lanczos4  | 91x91 | - | 68 |
+A_SP_7.1   |  629.5|  1.0 | Yes 	| Free with upper limit		| Regular		  | None 		  | Excluding the 20 obj. in each galaxy catalog with the highest CHI2_MODEL value  | 	0.6 |  Lanczos4  | 91x91 | SExtractor compiled with the '-fp-model precise' option | 72 |
+A_SP_7.5   |  425.2|  1.0 | Yes 	| Free with upper limit		| Regular		  | None 		  | Excluding the 20 obj. in each galaxy catalog with the highest CHI2_MODEL value  | 	0.3 |  Lanczos4  | 91x91 |- | 76 |
+A_SP_7.9   |  802.3|  1.0 | Yes 	|Free with upper limit  | Regular		| None 		  | Excluding the 20 obj. in each galaxy catalog with the highest CHI2_MODEL value   | 	0.6 |  Lanczos4  | 91x91  |  - | 80 |
+A_SP_8.2   |  392.9|  1.0 | Yes 	| Free with upper limit	| Modified				  | None 		  | Excluding the 20 obj. in each galaxy catalog with the highest CHI2_MODEL value  | 	0.6 |  Lanczos4  | 91x91 | - | 83 |
+A_SP_8.3   |  432.4|  1.0 | Yes 	|Free with upper limit		| Regular	  | None 		  | Excluding the 20 obj. in each galaxy catalog with the highest CHI2_MODEL value   | 	0.6 |  Lanczos4  | 91x91  | Lower threshold on galaxy weights    | 84 |
+A_SP_9.0   |  233.2|    1.0 | Yes 	| Free with upper limit	 	| Regular	  | None 		  | Excluding the 20 obj. in each galaxy catalog with the highest CHI2_MODEL value   | 	0.6 |  Lanczos4  | 91x91 | Different detection settings  | 91 |
+A_SP_9.4   |  770.6|  0.25 | Yes 	| Free with upper limit	 	| Regular	  | None 		  | Excluding the 20 obj. in each galaxy catalog with the highest CHI2_MODEL value   | 	0.6 |  Lanczos4  | 91x91  | - | 94 |
+A_SP_10.0   |  217.8| 0.25 |  Yes 	|Free with upper limit 	| Regular	  |  Sersic Index 	|  None   | 	0.6 |  Lanczos4  | 91x91  | LevMar step set to $10^{-5}$ | 100 |
+A_SP_10.1   |  126.1|  0.25 |  Yes 	| Free with upper limit 	| Regular	 |  Aspect ratio 	|  None |  	0.6 |  Lanczos5  | 91x91  | LevMar step set to $10^{-5}$    | 101 |
+A_SP_10.2   |  1121.0 | 1.0 |  Yes 	| Free with upper limit	 	| Regular	  |  Aspect ratio 	|  None |  	0.6 |  Lanczos5  | 91x91 | LevMar step set to $10^{-5}$  | 102 |
+A_SP_10.8   |  298.3|  1.0 |  Yes 	|Free with upper limit 	| Regular	 |  Aspect ratio 	|  None |  	0.6 |  Lanczos5  | 91x91 | -  | 108 |
+A_SP_11.2   |  907.8| 0.5 |  Yes 	| Free with upper limit			| Regular	   |  Aspect ratio 	|  None |  	0.6 |  Lanczos5  | 91x91 | - | 112 |
+A_SP_11.6   |  883.0|  0.5 |  Yes 	| Free with upper limit	 	| Regular	  |  Aspect ratio 	|  None |  	0.6 |  Lanczos5  | 91x91 | Extra PSF padding | 116 |
+A_SP_11.9   |  298.0| 0.5 |  Yes 	|Free with upper limit  	| Regular	 |  Aspect ratio (sigma_{theta_{aspect}}=0.7)	|  None |  	0.6 |  Lanczos5  | 91x91 | -| 119 |
+A_SP_12.5   |  849.2| 10. |  Yes 	| Free with upper limit	  	| Regular	 |  Aspect ratio 	|  None |  	0.6 |  Lanczos5  | 91x91 | -   | 125 |
+A_SP_12.6   |  148.6|  0.5 |  No 	|Free with upper limit	 	| Regular	  |  Aspect ratio 	|  None |  	0.6 |  Lanczos5  | 91x91 | -  | 126 |
+A_SP_13.1   |  652.9|  0.4|  Yes 	| Free with upper limit 	| Regular	  |  Aspect ratio 	|  None |  	0.6 |  Lanczos5  | 91x91 |  - |   131 |
+A_SP_13.2   |  1073.4| 0.9 |  Yes 	| Free with upper limit  	| Regular	 	  |  Aspect ratio 	|  None |  	0.6 |  Lanczos5  | 91x91 | - | 132 |
+A_SP_13.3   |  1104.3|1.1   |  Yes 	| Free with upper limit  	| Regular	  |  Aspect ratio 	| Excluding the 20 obj. in each galaxy catalog with the highest CHI2_MODEL value |  	0.6 |  Lanczos5  | 91x91 | -| 133 |
+A_SP_13.6   |  1099.3| 1.0 |  Yes 	| Free with upper limit   | Regular	 |  Aspect ratio 	| Excluding the 20 obj. in each galaxy catalog with the highest CHI2_MODEL value |  	0.6 |  Lanczos5  | 91x91  | - |136 |

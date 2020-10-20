@@ -1,0 +1,225 @@
+---
+title: "HW: Week 4"
+author: "36-350 -- Statistical Computing"
+date: "Week 4 -- Fall 2020"
+output:
+  pdf_document:
+    toc: no
+  html_document:
+    theme: spacelab
+    toc: yes
+    toc_float: yes
+---
+
+Name: Kimberly Zhang
+
+Andrew ID: kyz
+
+You must submit **your own** lab as a PDF file on Gradescope.
+
+```{r wrap-hook,echo=FALSE}
+library(knitr)
+hook_output = knit_hooks$get('output')
+knit_hooks$set(output = function(x, options) {
+  # this hook is used only when the linewidth option is not NULL
+  if (!is.null(n <- options$linewidth)) {
+    x = knitr:::split_lines(x)
+    # any lines wider than n should be wrapped
+    if (any(nchar(x) > n)) x = strwrap(x, width = n)
+    x = paste(x, collapse = '\n')
+  }
+  hook_output(x, options)
+})
+```
+
+---
+
+## Question 1
+*(10 points)*
+
+You are given the following matrix:
+```{r linewidth=80}
+set.seed(505)
+mat = matrix(rnorm(900),30,30)
+mat[sample(30,1),sample(30,1)] = NA
+```
+Compute the standard deviation for each row, using `apply()` and your own on-the-fly function, i.e., a function that is defined *within* the argument list being passed to `apply()`. **Do not use the function sd()!** Realize that since there is a missing value within the matrix, you need to define your function so as to only take into account the non-missing data in each row. If your vector of standard deviations has an `NA` in it, then your function isn't quite working yet.
+```{r linewidth=80}
+apply(mat, 1, function(x){
+  y= x[is.na(x) == FALSE]
+  return(sqrt(sum((y-mean(y))^2)/(length(y)-1)))})
+
+```
+
+## Question 2
+*(10 points)*
+
+The data frame `state.df` was defined in Q20 of Lab 4. Copy the code that created that data frame to here. Then define a function `grad.by.lit.median()` that computes the median value of the ratio of graduation rate and literacy. (Basically, define a function that does what your mutation did in Q20 of Lab 4, and returns the median value of the vector that your function derives.) Then use `split()` and `sapply()` so as to compute `grad.by.lit.median()` for each `Division` in the `state.df` data frame. Sort your output into decreasing order. (`Pacific` should be the first division output, with value 63.29626.)
+```{r linewidth=80}
+state.df<-data.frame(state.x77, Region = state.region, 
+                     Division = state.division)
+
+grad.by.lit.median<-function(x){
+  median(x$HS.Grad/(100-x$Illiteracy)*100)
+}
+
+sort(sapply(split(state.df, state.df$Division), grad.by.lit.median), 
+     decreasing = TRUE)
+```
+
+---
+
+Below, we read in a data table showing the fastest women's 100-meter sprint times.
+```{r linewidth=80}
+sprint.df = read.table("http://www.stat.cmu.edu/~pfreeman/women_100m_with_header.dat",header=TRUE)
+```
+
+---
+
+## Question 3
+*(10 points)*
+
+As you did in Q7 of Lab 4, add a column dubbed `Year` to the data frame `sprint.df`, to compute a new data frame called `new.sprint.df`. Then compute the mean (or average) sprint time in each year. Do this with `tapply()`. Use `plot()` to plot the years on the x-axis and the mean time for each year on the y-axis. Also send the following arguments to `plot()`: `xlab="Year"`, `ylab="Average 100-Meter Sprint Time"`, and `pch=19`.
+```{r linewidth=80}
+string.col<-as.character(sprint.df$Date)
+date.len<-nchar(string.col)
+years<-substr(string.col, date.len-3, date.len)
+new.sprint.df<-data.frame(sprint.df, Year = years)
+res<-tapply(new.sprint.df$Time, new.sprint.df$Year, mean)
+plot(names(res),as.numeric(res), xlab = "Year", 
+     ylab= "Average 100-Meter Sprint Time", pch=19)
+```
+
+---
+
+One thing that we did not cover in the `dplyr` notes (Notes_4D) is the concept of splitting. In base `R`, for instance, `split()` creates a list of data frames; each element of the list can then be worked with individually. To "split" a data frame in the `tidyverse`, one can use the `group_by()` function: pass in one or more variables, and the data frame will be effectively split based on these variables. I say "effectively" because you won't see visualize evidence of grouping if you just pipe to `group_by()` alone; you need to pipe the output of `group_by()` to something else.
+
+A commonly used "something else" is `summarize()`, a function which takes the groups specified by `group_by()` and summarizes their information using one or more functions. See the documentation for `summarize` to get a sense of summary statistics that are useful.
+
+Example: determine the number of states in each `Region` of the United States, and the mean illiteracy.
+```{r linewidth=80}
+suppressMessages(library(tidyverse))
+example.df = data.frame(state.x77,Region=state.region,Division=state.division)
+example.df %>% group_by(Region) %>% 
+  summarize(Number.of.States=n(),Mean.Illiteracy=mean(Illiteracy))
+```
+
+---
+
+## Question 4
+*(10 points)*
+
+Your result for Q3 should indicate that the average sprint time decreases over the years. Using a pipe stream to extract the p-value for the linear regression slope. This is a bit tricky. First you utilize `group_by()` and `summarize()` to extract the average sprint times, and pipe the results to `lm()`. You would pipe your `lm()` results to `summary()`, which prints a summary but invisibly returns a list. To get at the coefficients element of the list, you would use the <tt>`[[`</tt> function (yeah, it's a function, and you need to include the backquotes...note: don't cut-and-paste the backquotes, as cutting and pasting often leads to bad results because what you see in, e.g., the HTML rendering of this file might not be the "correct" backquote that `R` is expecting). Pass to this function the argument `"coefficients"`. At this point, your output is a matrix that has row names and column names. Extract the matrix element associated with `Year` (row) and `Pr(>|t|)` (column). (You'll need to use dot notation here, to represent the matrix, then you subset it.) Your final value should be 0.0002297436, which is less than 0.05, leading us to reject the null hypothesis that the true average time is actually constant from year to year.
+```{r linewidth=80, warning = FALSE, message = FALSE}
+new.sprint.df %>% group_by(Year) %>% 
+  summarize(Mean.Time=mean(Time)) %>% 
+lm(formula= .$Mean.Time~as.numeric(.$Year)) %>% summary(.) %>% 
+  `[[`("coefficients") %>% 
+.[2, "Pr(>|t|)"]
+```
+
+## Question 5
+*(10 points)*
+
+Using `state.df` from above, display the sample mean and sample standard deviation of incomes in each defined `Region`-`Division` pair. (Here you can use `sd()`.) Arrange your results by descending sample mean.
+```{r linewidth=80, warning = FALSE, message = FALSE}
+state.df %>% group_by(Region, Division) %>%  
+  summarize(Mean=mean(Income), Sd= sd(Income)) %>% 
+  arrange(., desc(Mean))
+```
+
+## Question 6
+*(10 points)*
+
+Repeat Q5, but display the 5<sup>th</sup> and 95<sup>th</sup> percentiles for income. Also display the difference between the two, and arrange your table in descending order of that difference. See the documentation for `quantile()` to determine how to get a single-number summary out (you won't get this by default).
+```{r linewidth=80, warning = FALSE, message = FALSE}
+state.df %>% group_by(Region, Division) %>%  
+  summarize(Mean=mean(Income), Sd= sd(Income), 
+            Quantile5 = quantile(Income, probs= 0.05, names = FALSE),
+            Quantile95 = quantile(Income, probs = 0.95, names= FALSE),
+            Diff = Quantile95- Quantile5) %>% 
+  arrange(., desc(Diff))
+```
+
+---
+
+The following code replaces the `Date` column in `new.sprint.df` with `Day`, `Month`, and `Year`.
+```{r linewidth=80}
+if ( exists("new.sprint.df") == TRUE ) {
+  newer.sprint.df = new.sprint.df %>% separate(col=Date,into=c("Day","Month","Year"),sep="\\.",convert=TRUE)
+}
+```
+
+---
+
+## Question 7
+*(10 points)*
+
+Write a function called `day_of_year()` that converts an input day and month (integers both) into the day of the year. For instance, passing in day=31 and month=12 (December 31st) would yield 365. Usually. Also pass in the year; if the year is divisible by 4 (i.e., if year%%4 == 0) *and* the year is not 2000 *and* the month is March or later, add a day...because you are dealing with a leap year. Test your function by sending in June 1st, 1996, and then June 1st, 1997, and then June 1st, 2000. The outputs should be 153, 152, and 152 respectively. Once you've written your function, use `mutate()` and your `day_of_year()` function to define a new `DayOfYear` column for `newer.sprint.df`, then output just the `Day`, `Month`, `Year`, and `DayOfYear` columns arranged in ascending values of `DayOfYear`. Just show the first six rows. Your `DayOfYear` values should range from 56 (first row) to 93 (sixth row). Hint: it may be useful to define a vector giving the number of days in each month, and to use `cumsum()` to define another vector giving the cumulative number of days through the end of a month (e.g., 31 for January, 59 for February, etc.)
+```{r linewidth=80}
+day_of_year<- function(day, month, year){
+              month.days<-c(31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
+              cum.days<-cumsum(month.days)
+              res<-ifelse(month == 1, day, cum.days[month-1] + day)
+              res[which((year%%4 == 0) & (year != 2000) & (month >= 3))] = 
+                res + 1
+              return(res)}
+day_of_year(1, 6, 1996)
+day_of_year(1, 6, 1997)
+day_of_year(1, 6, 2000)
+newer.sprint.df %>% mutate(DayOfYear = day_of_year(Day, Month, Year)) %>%
+  select(Day, Month, Year, DayOfYear) %>%
+  arrange(DayOfYear) %>%
+  head()
+```
+
+## Question 8
+*(10 points)*
+
+Who was the oldest person included in the sprint table for the year 2011? In the end, just show the first and last name, and the two-digit birth year. Hint: utilize `separate()`, an example usage of which is given above, to separate birthdates into day, month, and two-digit year, and go from there.
+```{r linewidth=80}
+newer.sprint.df %>% 
+separate(col=Birthdate,
+         into=c("Bday","Bmonth","Byear"),sep="\\.",convert=TRUE) %>%
+  arrange(., Byear) %>% select(., First.Name, Last.Name, Byear) %>% 
+  head(., 1)
+
+```
+
+---
+
+Below we read in the data on the political economy of strikes that you examined in Lab 4.
+```{r linewidth=80}
+strikes.df = read.csv("http://www.stat.cmu.edu/~pfreeman/strikes.csv")
+```
+
+---
+
+## Question 9
+*(10 points)*
+
+Using `split()` and `sapply()`, compute the average unemployment rate, inflation rates, and strike volume for each year represented in the `strikes.df` data frame. The output should be a matrix of dimension 3 $\times$ 35. (You need not display the matrix contents...just capture the output from `sapply()` and pass that output to `dim()`.) Provide appropriate row names (see `rownames()` to your output matrix. Display the columns for 1962, 1972, and 1982. (This can be done in one line as opposed to three.)
+```{r linewidth=80}
+res<-strikes.df %>% split(., strikes.df$year) %>% sapply(., function(x){
+  list(Mean.unemployment= mean(x$unemployment, na.rm = TRUE), 
+       Mean.inflation= mean(x$inflation, na.rm= TRUE),
+       Mean.strike.vol=mean(x$strike.volume, na.rm= TRUE))})
+dim(res)
+res[, c("1962", "1972", "1982")]
+```
+
+## Question 10
+*(10 points)*
+
+Utilize piping and `group_by()`, etc., to compute the average unemployment rate for each country, and display that average for only those countries with the maximum and minimum averages. To be clear: your output should only show average unemployment for Ireland and Switzerland, and nothing else. (Hint: remember `slice()`, a less-often-used `dplyr` function.) Hint: arrange your output in order of descending average unemployment, then note that `n()` applied as an argument to the right function will return the last row.
+```{r linewidth=80, warning = FALSE, message = FALSE}
+strikes.df %>% group_by(country) %>%  
+  summarize(Avg.unemploy=mean(unemployment)) %>% 
+  arrange(., desc(Avg.unemploy)) %>% 
+  slice(c(1, n()))
+```
+
+
+
+
+

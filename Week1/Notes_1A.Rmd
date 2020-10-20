@@ -1,0 +1,84 @@
+---
+title: "R Basics"
+author: "36-350 -- Statistical Computing"
+date: "Week 1 -- Fall 2020"
+output: 
+  slidy_presentation:
+    font_adjustment: -1
+---
+
+Hello, World!
+===
+
+We start this class as any class of this type should be started.
+
+Assuming you've fired up `RStudio` and you've meandered your way to the console, go to the prompt and type the following:
+```{r}
+print("Hello, World!")
+```
+
+So, to get to the first question: why is there a "[1]" in the output? It denotes that on this line of output, the first displayed value is the first output value overall. Compare this to the output you get when you sample 20 values from a standard normal distribution:
+```{r}
+rnorm(20)
+```
+
+What is R?
+===
+
+From the [R FAQ](https://cran.r-project.org/doc/FAQ/R-FAQ.html#What-is-R_003f):
+
+<font size="4">
+2.1 What is R?
+
+R is a system for statistical computation and graphics. It consists of a language plus a run-time environment with graphics, a debugger, access to certain system functions, and the ability to run programs stored in script files.
+
+The design of R has been heavily influenced by two existing languages: Becker, Chambers & Wilks' S (see What is S?) and Sussman's Scheme. Whereas the resulting language is very similar in appearance to S, the underlying implementation and semantics are derived from Scheme...
+
+The core of R is an interpreted computer language which allows branching and looping as well as modular programming using functions. Most of the user-visible functions in R are written in R. It is possible for the user to interface to procedures written in the C, C++, or FORTRAN languages for efficiency. The R distribution contains functionality for a large number of statistical procedures. Among these are: linear and generalized linear models, nonlinear regression models, time series analysis, classical parametric and nonparametric tests, clustering and smoothing. There is also a large set of functions which provide a flexible graphical environment for creating various kinds of data presentations...
+
+...
+
+R has a [home page](https://www.R-project.org/). It is free software distributed under a GNU-style copyleft, and an official part of the GNU project ("GNU S").
+</font>
+
+The R Language is an Interpreted Language
+===
+
+A key phrase on the previous slide is "[t]he core of R is an interpreted computer language." This means that instructions are executed directly when typed into the console of `R Studio`. For instance:
+```{r}
+666
+```
+`R` doesn't know necessarily what to do with this input of type "double," so it outputs it to the screen. (If you input something of unknown type, like an uninitialized variable, you'd get an error instead.)
+
+Variables
+===
+
+You have to help `R` along, by, e.g., explicitly telling it you want to assign the value 666 to a variable:
+```{r}
+x = 666                   # NOTE: R purists might use the assignment operator <- here, in place of =
+x
+typeof(x)
+```
+
+Variable Values
+===
+
+There are other ways to output the value of the variable *x*, like 
+```{r}
+print(x)
+cat("x =",x,"\n")
+```
+As you can see (and will see again later), the latter is more flexible than the former.
+
+Removing Variables
+===
+
+To remove the variable from global environment:
+```{r}
+x = 666
+rm(x)
+gc()
+```
+The latter function's name stands for "garbage collection." Garbage collection is a means by which to give freed memory back to your computer for it to use, and thus is only really important if you are removing variables that are using lots of memory (e.g., large matrices).
+
+

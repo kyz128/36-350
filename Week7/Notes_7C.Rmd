@@ -1,0 +1,106 @@
+---
+title: "The Bootstrap"
+author: "36-350 -- Statistical Computing"
+date: "Week 7 -- Fall 2020"
+output: 
+  slidy_presentation: 
+    font_adjustment: -1
+---
+
+```{r,echo=FALSE}
+set.seed(101)
+```
+
+Motivation
+===
+
+Let's say you've a dataset like this one:
+```{r,echo=FALSE}
+my.data = rpois(30,lambda=8)
+```
+```{r,fig.align='center',fig.width=6,fig.height=3}
+hist(my.data,xlab=NULL,xlim=c(0,max(my.data)))
+```
+In the previous set of slides, you learned how to numerically estimate values of the population parameter(s). The next question that naturally arises is:
+
+- can I estimate the uncertainty (i.e., standard error) of my parameter estimate?
+
+Sometimes, this is easy (think confidence intervals for means of normal distributions...there are analytic formulae for computing those that you learned, or should have learned, in 36-226). And then there are the other times...
+
+The Bootstrap
+===
+
+In theory, one could estimate the standard error for a given parameter by replicating the original experiment some large number of times.
+
+Of course, this is generally infeasible.
+
+So a next best option is to apply the bootstrap algorithm. Assume your dataset is of size $n$. Then:
+
+- sample your dataset *indices* (the values 1,2,...,$n$) $n$ times, *with replacement*;
+
+- and repeat the process of estimating (a) parameter value(s), with your new dataset.
+
+For instance, if you have an original dataset with measurements (2.2,4.4,3.5) and you sample from the indices 1:3 with replacement, you might get a sample (1,1,3). That means that you will repeat your estimation process with the first, first, and third data, or with the measurements (2.2,2.2,3.5). The estimated quantity will be different than it was for the original dataset, due to random variation.
+
+Repeat the resampling of indices a large number of times, and determine the standard error (i.e., the sample standard deviation) for the set of parameter value estimates that you generate.
+
+Example
+===
+
+The basic bootstrap process wraps optimization with a for loop, where for every pass we resample our original data. (Note how we pass `my.data[indices]` to `optimize()` below, instead of just `my.data`.)
+```{r,fig.align='center'}
+set.seed(101)
+# Return negative log-likelihood for Poisson distribution.
+f = function(x,lambda)
+{
+  return(-sum(x*log(lambda)-lambda))
+}
+B = 100         # number of bootstrap replications
+lambda.hat = rep(NA,B)
+for ( ii in 1:B ) {
+  indices = sample(length(my.data),length(my.data),replace=TRUE) # bootstrap sampling
+  optim.out = optimize(f,interval=c(5,11),x=my.data[indices])
+  lambda.hat[ii] = optim.out$minimum
+}
+mean(lambda.hat)
+sd(lambda.hat)
+```
+The uncertainty in $\hat{\lambda}$ is $\approx$ 0.43.
+
+Example (Continued)
+===
+
+The uncertainty is the sample standard deviation for the data visualized below.
+```{r,fig.align='center',fig.height=3.5}
+par(mfrow=c(1,2))
+hist(lambda.hat,xlab=expression(hat(lambda)),col="chartreuse",main=NULL)
+```
+
+A More Elegant Example
+===
+
+```{r,fig.align='center',fig.height=3.5}
+set.seed(101)
+my.data = rnorm(30,mean=4,sd=1.25)
+
+indices = sample(length(my.data),B*length(my.data),replace=TRUE)
+data.array = matrix(my.data[indices],nrow=B)  # now we have a bootstrapped dataset in each row!
+
+my.fit.fun = function(my.par,my.data)
+{
+  -sum(log(dnorm(my.data,mean=my.par[1],sd=my.par[2])))
+}
+my.fun = function(x)
+{
+  optim.out = optim(c(5,1),my.fit.fun,my.data=x)
+  return(optim.out$par)
+}
+
+apply.out = apply(data.array,1,my.fun)  # first row is hat(mu), second row is hat(sigma)
+mu.hat = apply.out[1,]
+sigma.hat = apply.out[2,]
+par(mfrow=c(1,3))
+hist(mu.hat,xlab=expression(hat(mu)),col="chartreuse",main=NULL)
+hist(sigma.hat,xlab=expression(hat(sigma)),col="gainsboro",main=NULL)
+plot(mu.hat,sigma.hat,xlab=expression(hat(mu)),ylab=expression(hat(sigma)),pch=19,col="moccasin")
+```

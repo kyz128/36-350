@@ -1,0 +1,80 @@
+---
+title: "Extraction/Replacement"
+author: "36-350 -- Statistical Computing"
+date: "Week 3 -- Fall 2020"
+output: 
+  slidy_presentation:
+    font_adjustment: -1
+---
+
+Extraction
+===
+
+Let's say that instead of receiving an entire string that contains a matching substring, which is what you would receive if you use `grep()` with `value=TRUE`, you just want that substring. To get just the substring, use a combination of `regexpr()` and `regmatches()`:
+
+- `regexpr()` returns the location of the *first* match in the target string (or -1 if no match is found); and
+
+- `regmatches()` takes the output of `regexpr()` and returns the matching substring.
+
+Extraction Example
+===
+
+```{r}
+str.vec = c("abccc","ababc","cabcc","ccabb","ccccc")
+reg.exp = regexpr("ab+",str.vec,useBytes=TRUE)
+reg.exp
+```
+
+The first line of output tells you *where* in the string the match occurs, and that the `match.length` attribute tells you the length of the matching substring in characters.
+
+```{r}
+regmatches(str.vec,reg.exp)
+```
+
+Replacement
+===
+
+In a previous example, I showed how one outputs the matching substrings:
+```{r}
+str.vec = c("abccc","ababc","cabcc","ccabb","ccccc")
+reg.exp = regexpr("ab+",str.vec,useBytes=TRUE)
+regmatches(str.vec,reg.exp)
+```
+
+But you can also use `regmatches()` to specify a *replacement* for these substrings:
+```{r}
+regmatches(str.vec,reg.exp) = "xy"
+str.vec
+```
+
+Notice that in the second string, only the first instance of "ab" is replaced. Again, as we have been using it up to now, `regexpr()` will only return the *first* matching substring. To get all the matching substrings in a given string, use `gregexpr()`.
+
+gregexpr()
+===
+
+```{r}
+str.vec  = c("abab","abAB","ABAB","ccAbCC")
+greg.exp = gregexpr("ab|AB",str.vec)
+regmatches(str.vec,greg.exp)                # returns a list, one element per input string
+```
+
+```{r}
+regmatches(str.vec,greg.exp) = "xy"
+str.vec
+```
+
+Alternative Replacement: (g)sub()
+===
+
+```{r}
+str.vec = c("abab","abAB","ABAB","ccAbCC")
+sub("ab|AB","xy",str.vec)                   # sub(): replace first occurrence of matching substring
+str.vec
+```
+Note that unlike before, the original string vector is not itself changed! If you need, e.g., to compare how your initial and final strings appear, `sub()` or `gsub()` is the way to go. The difference: `sub()` replaces the first occurrence of the matching substring, while `gsub()` replaces all occurrences of the matching substring.
+```{r}
+str.vec = c("abab","abAB","ABAB","ccAbCC")
+gsub.out = gsub("ab|AB","xy",str.vec)
+gsub.out
+```
+

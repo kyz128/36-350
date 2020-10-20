@@ -1,0 +1,170 @@
+---
+title: "Regular Expressions"
+author: "36-350 -- Statistical Computing"
+date: "Week 3 -- Fall 2020"
+output:
+  slidy_presentation:
+    font_adjustment: -1
+---
+
+What Are Regular Expressions (or Regexes)?
+===
+
+Regexes are specially constructed strings that allow for flexible pattern matching. The rules for constructing regexes are independent of `R`; you may already know them. (But even then, reviewing them cannot hurt. Too much.)
+
+- Literals: strings we want to *literally* match (e.g., "fly", which does not match with "flies")
+
+- "Or": for more flexible matching; if you want to match "fly" *or* "flies", use "fly|flies".
+
+- Concatenation: "(a|b) (c|d)" is a concatenation of two regexes...use this if you want to find "a" or "b" followed by a space followed by "c" or "d". Here, the parantheses define the group of possible literals that we are trying to match.
+
+grep()
+===
+
+The `grep()` function carries out matching.
+```{r}
+str.vec = c("fly","Fly","flies")
+grep("fly",str.vec)               # grep is case-sensitive! This returns vector element(s) for match(es).
+grep("fly",str.vec,value=TRUE)    #                         This returns the vector value(s) for match(es).
+grep("fl",str.vec,value=TRUE)
+str.vec = c("time flies","fruit fly","fruit flies")
+grep("(time|fruit) flies",str.vec,value=TRUE)
+grep("fruit (time|times)",str.vec,value=TRUE)       # no error, just a zero-length vector
+```
+
+**NOTE**: a very useful alternative to `grep()` is `grepl()`, or "logical grep": instead of returning vector elements or the values themselves, it returns `TRUE` if there is a match, and `FALSE` otherwise.
+```{r}
+grepl("(time|fruit) flies",str.vec)
+```
+
+Metacharacters
+===
+
+Metacharacters are strings that are not to be intrepreted literally!
+
+For instance:
+
+- Square brackets: we want to match any one character that appears inside.
+
+-- "[abcde]" means "look for any string that contains a, b, c, d, or e" (case sensitive!)
+
+-- "[a-e]" means the same thing; the dash denotes a range
+
+-- "[^a-e]" means "look for any string that contain characters other than a, b, c, d, or e"
+
+-- " [1-4][2-6] " matches strings that contain the numbers 12-16, 22-26, 32-36, or 42-46
+
+```{r}
+str.vec = c("I am 18 years old","I turned 24 yesterday","His age is 112")
+grep("[w-z]",str.vec,value=TRUE)
+grep("[^w-z]",str.vec,value=TRUE)
+grep(" [1-4][2-6]",str.vec,value=TRUE)
+```
+
+Note: do not use, e.g., "[2020]" to try to match the year 2020! This actually will match any string that has 2, 0, 2, or 0, or stated more concisely, 0 and 2, in it. Thus it will match with "2020" and "2002" and "2200" and "2345" and "0135", etc.
+
+Metacharacters
+===
+
+- "[[:alnum:]]" is the same as "[a-zA-Z0-9]"
+
+- "[[:punct:]]" means "match any string that contains a punctuation mark"
+
+- "[[:space:]]" means "match any string that contains a space, a tab, or a new line"
+
+- "." matches anything (and so is meaningless unless applied as in, e.g., "(a|b).(c|d)")
+
+```{r}
+str.vec = c("R2D2","r2d2","R2 D2","R2-D2")
+grep("[A-Z][0-9]",str.vec,value=TRUE)
+grep("[[:space:]]",str.vec,value=TRUE) 
+grep("[[:punct:]]",str.vec,value=TRUE)
+```
+
+See `?regex` for more possibilities.
+
+Escape Sequences
+===
+
+In regexes, the symbols . $ ^ * + ? \ | { } [ ] ( ) and \\ are all metacharacters.
+
+To find occurrences of these symbols in strings, we use an *escape sequence*: we place a backslash in front of the symbol. (Note that in searches we have to double the number of backslashes because backslash itself is a metacharacter.)
+```{r}
+str.vec = c("que?","these symbols-[ and ]-are square brackets",":)",":->")
+grep("\\?",str.vec,value=TRUE)
+grep("\\]",str.vec,value=TRUE)
+grep(":\\)",str.vec,value=TRUE)
+grep(">",str.vec,value=TRUE)
+```
+
+Note: a single backslash in any string will not be interpreted as a single backslash, but rather as a backslash plus whatever character follows it. (For example, you cannot search for the backslash in the string `"\n"` because to `R`, the backslash and the "n" are implicitly combined together into a single entity that means "line break".)
+
+Quantifiers
+===
+
+Quantifiers in regexes allow us greater flexibility is searches.
+
+- "+" means "occurs 1 or more times"
+
+- "*" means "occurs 0 or more times"
+
+- "?" means "the preceding regex is optional"...it differs from "*" in that "?" means "occurs 0 or 1 time" only
+
+- "{n}", "{n,}", and "{n,m}" mean "exactly n", "n or more", and "between n and m inclusive" times; note that these only work in the way you'd expect in combination with other regexes
+
+A quantifier's scope is what it is applied to. By default, the scope is the character preceding the quantifier. If you wish to have the quantifier apply to an entire group of characters, place parantheses around those characters.
+
+Quantifier Examples
+===
+
+```{r}
+str.vec = c("a","ab","ac","bc","cb","abb?","abab","10","100","1000")
+grep("ab+",str.vec,value=TRUE)
+grep("ab*",str.vec,value=TRUE)
+grep("bc?",str.vec,value=TRUE)
+grep("bc?\\?",str.vec,value=TRUE)
+```
+
+More Quantifier Examples
+===
+
+```{r}
+grep("10{1,2}",str.vec,value=TRUE)         # doesn't actually match just 10 and 100
+```
+Admittedly, this is a bit confusing. Think of it as asking whether there is a "10" or a "100" in the string. "1000" has both a "10" and a "100". You have to add more to the regex to limit the matches to the strings "10" and "100" only. See, e.g., the concept of anchoring on the next page.
+```{r}
+grep("(ab)+",str.vec,value=TRUE)
+grep("(ab){2}",str.vec,value=TRUE)
+grep("(00){2}",str.vec,value=TRUE)
+```
+
+Anchoring
+===
+
+When "^" is used outside of square brackets, it means we will only look for the match at the beginning of the string.
+
+```{r}
+str.vec = c("Win!","winner","I win.")
+grep("^[Ww]in",str.vec,value=TRUE)
+```
+
+Similarly, "$" looks for a match only at the end of the string.
+
+```{r}
+str.vec = c("WIN","win","Winner winner chicken dinner")
+grep("[Nn]$",str.vec,value=TRUE)
+```
+
+Final Example: String Splitting Using Regexes
+===
+
+```{r}
+str = "keep ... on ....swimming... swimming.......swimming..."
+strsplit(str,split=" *\\.+ *")       # 0+ spaces followed by 1+ periods followed by 0+ spaces
+```
+Note that the output of `strsplit()` is a list. Here, the input is a single string, so the output list has only one element that contains the split vector of strings. In cases like this, applying `unlist()` can be helpful.
+
+```{r}
+str = "keep on swimming; swimming;  swimming;   swimming"
+unlist(strsplit(str,split=";? +"))   # optional semi-colon followed by 1+ spaces
+```

@@ -1,0 +1,270 @@
+---
+title: "HW: Week 7"
+author: "36-350 -- Statistical Computing"
+date: "Week 7 -- Fall 2020"
+output:
+  pdf_document:
+    toc: no
+  html_document:
+    toc: true
+    toc_float: true
+    theme: space
+---
+
+Name: Kimberly Zhang  
+
+Andrew ID: kyz
+
+You must submit **your own** lab as a PDF file on Gradescope.
+
+---
+
+```{r wrap-hook,echo=FALSE}
+library(knitr)
+hook_output = knit_hooks$get('output')
+knit_hooks$set(output = function(x, options) {
+  # this hook is used only when the linewidth option is not NULL
+  if (!is.null(n <- options$linewidth)) {
+    x = knitr:::split_lines(x)
+    # any lines wider than n should be wrapped
+    if (any(nchar(x) > n)) x = strwrap(x, width = n)
+    x = paste(x, collapse = '\n')
+  }
+  hook_output(x, options)
+})
+```
+
+
+## Question 1
+*(10 points)*
+
+Let's say you have data sampled randomly from an unknown distribution. How can you estimate the probability that the next datum $x_o$ that you observe will lie between the values $x = a$ and $x = b$?
+
+One technique is to guess the distribution from a set of named ones, go through the optimization process, and then perform the necessary integral, by hand or with `integrate()`. But if you cannot guess the distribution, you could also use <i>density estimation</i>, i.e., nonparametrically estimate the probability density function using a kernel density estimator. Given the estimated pdf, you would then compute the required integral.
+
+Below is a histogram for a data sample of size 100. Use the `density()` function to estimate the underlying pdf. By default, the weighting kernel is `"gaussian"` and the width of the kernel is computed via a "plug-in rule"; you do not need to change these default values. Overlay the estimated density function onto the histogram. Then compute the probability between $x = 0$ and $x = 4$, using the output from `density()`. You can code your own integrator, based on summations (trapezoid rule!), or utilize an appropriate function in the `sfsmisc` package that will integrate a function that is defined as a series of $(x,y)$ pairs and not as a parametrized function. Note that my answer is approximately 0.666; you do not need to match this *exactly*, but your own answer should be pretty close. (Remember: in the end, this is only an estimate of the probability. Changing the width and/or form of the kernel will change your answer. Also, a kernel density estimate smooths data, so you can never actually recover the true underlying pdf anyway, just an approximation of it that is going to be slightly too wide. Still, this whole process beats having to fall back on Tchebysheff's theorem.)
+```{r linewidth=80}
+if ( require(sfsmisc) == FALSE ) {
+  install.packages("sfsmisc",repos="https://cloud.r-project.org")
+  library(sfsmisc)
+}
+
+set.seed(303)
+x = rgamma(100,2.5,scale=1.25)
+s = sample(c(-1,1),100,replace=TRUE)
+x = x + s*rexp(100,rate=3/abs(x))
+pdf = density(x)
+(prob = integrate.xy(pdf, a=0, b=4))
+hist(x,prob=TRUE,ylim=c(0,0.5),col="steelblue")
+lines(pdf, col= "red", lwd= 2)
+```
+
+## Question 2
+*(10 points)*
+
+The `integrate()` function is used to perform univariate integrals of parametrized functions. What if you have a multi-dimensional integral instead, like
+$$
+\int_{0}^{\pi/2} \int_{0}^{\pi/4} \sin(2x+y)\cos(x+2y) dx dy \,?
+$$
+One option is to use the `cubature` package ("adaptive multivariate integration over hypercubes"). Install and use a function or functions of the `cubature` package to compute the integral given above. (Note: this package is useful for *hypercubes*; if the bounds of integration are variable [like when you dealt with triangular regions of integration in 225], then the functions of the `cubature` package are not appropriate. At that point, you would start moving towards, e.g., Monte Carlo integration.)
+```{r linewidth=80}
+if ( require(cubature) == FALSE ) {
+  install.packages("cubature",repos="https://cloud.r-project.org")
+  library(cubature)
+}
+
+f= function(x){
+  sin(2*x[1]+x[2])*cos(x[1] + 2*x[2])
+}
+hcubature(f, lower = c(0, 0), upper = c(pi/2, pi/4))$integral
+```
+
+## Question 3
+*(10 points)*
+
+The code below is the same code that was provided for Q6 of the lab, except that here we include the effect of random noise. Repeat what you did in that question, ultimately overlaying the plotted data with a estimated regression function. Here you cannot (or should not!) use `spline()` to try to estimate the true underlying function. (Try it and see just how terrible your estimated function looks...) An alternative is `lowess()`, which is part of base `R`'s `stats` package. The downside of using `lowess()` is that often have to play with the so-called "smoother span" to get a result that you are happy with. Optimizing the "smoother span" via, e.g., cross-validation is not something we will do here; just try several span values and pick one that you feel is reasonable. A rule of thumb is to use the smallest value that provides reasonable smoothness; using large values will make the function even smoother but you'll start seeing bias (a clear offset of the estimated function from the observed data).
+```{r linewidth=80}
+set.seed(202)
+x = runif(30,min=-3,max=3)
+y = sin(x)+rnorm(30,mean=0,sd=0.4)
+plot(x,y,pch=19)
+lines(lowess(x, y, f= 0.4))
+```
+
+## Question 4
+*(10 points)*
+
+If you sample 100 integers between 1 and 100 inclusive with replacement, how many unique integers are selected, on average? To answer this, do the following: (1) sample 100,000 integers between 1 and 100 inclusive with replacement; (2) place these samples into a 1000 $\times$ 100 matrix (so you've effectively simulated 1000 datasets with 100 samples each; (3) determine the number of unique values in each row and save the result to a vector; (4) histogram the result, properly labeled (base `R` or `ggplot()`); and (5) compute the sample mean and sample standard deviation of vector generated in step (3). If the mean is much different from 63.397, you've made a misstep. (Now, why are you doing this? Because the result tells you that in any one bootstrap sample of your data, there is a roughly 63% chance that a particular datum will be sampled one or more times. Or, alternatively, that roughly 37% of your data will not be sampled. Google, e.g., "out-of-bag error".)
+```{r linewidth=80}
+set.seed(303)
+B = 1000
+samples = sample(100, B*100,replace=TRUE)
+data.array = matrix(samples,nrow=B)
+apply.out = apply(data.array,1,function(x){length(unique(x))})
+mean(apply.out)
+sd(apply.out)
+hist(apply.out, main= "Distribution of Unique Integers", xlab= NULL)
+```
+
+## Question 5
+*(10 points)*
+
+Repeat Q10 and Q11 from the lab, except that instead of using a gamma distribution, use a half-normal distribution. This distribution essentially a normal of mean 0 but where the domain is $x \geq 0$ rather than the entire real-number line. To do this problem, you will need to search out and install a package that contains this distribution, and use at least one of its functions. (This has analogues in real-life: often you must search out packages to get what you want to get done, done.) Display both the parameter estimate(s) and the minimum of the negative log-likelihood. In both cases, use the `round()` function to round your solution to three decimal places. Note that if the third decimal place is a zero, `R` will just display the first two, etc. Also, overall a line showing your optimal half-normal function on top of a histogram of the data. As usual, either base `R` or `ggplot()`. (Hint: how many free parameters are there for the half-normal distribution? The answer to this may affect how you go about coding the solution.)
+```{r linewidth=80}
+load(url("http://www.stat.cmu.edu/~pfreeman/Lab_07_Q10.Rdata"))
+if ( require(extraDistr) == FALSE ) {
+  install.packages("extraDistr",repos="https://cloud.r-project.org")
+  library(extraDistr)
+}
+my.fit.fun = function(my.par,my.data)
+{
+  -sum(log(dhnorm(my.data,sigma=my.par))) 
+}
+optim.out = optimize(my.fit.fun,interval = c(0,max(my.data)), my.data=my.data)
+round(optim.out$minimum, 3)
+round(optim.out$objective, 3)
+hist(my.data,prob=TRUE,xlab=NULL, ylim = c(0, 0.3), 
+     main ="Distribution of 40 Gamma Values Fit w Half-Normal")
+x = seq(min(my.data),max(my.data),by=0.01)
+lines(x,dhnorm(x,sigma=optim.out$minimum))
+```
+
+## Question 6
+*(10 points)*
+
+Below we load in a set of $(x,y)$ data pairs:
+```{r linewidth=80}
+load(url("http://www.stat.cmu.edu/~pfreeman/HW_07_Q7.Rdata"))
+```
+Fit a quadratic function $f(x) = ax^2+bx+c$ to these data using `optim()`, with a gradient function specified. Use `method = BFGS`, and instead of the negative log-likelihood, minimize the residual sum of squares (i.e., minimize the squared distance from the model to the data). Plot the data and overplot the best-fit line. Note that if that line does not match the data well, you might have a situation in which your initial guess of the parameter values was incorrect...so try fitting again with a new guess. (Hint: remember that the gradient is the gradient of the fit metric, not the derivative of $f(x)$, and that the gradient function returns a vector of length three: the partial derivative of the fit metric with respect to $a$, then with respect to $b$, then with respect to $c$. You'll need to derive the gradient vector by hand. Ask us sooner rather than later how to do this if you've forgotten...but you should have covered this in 21-259 or the equivalent.)
+```{r linewidth=80}
+my.fit.gradient = function(my.par,x,y)
+{
+  diff = y - my.par[1]*x^2 - my.par[2]*x - my.par[3]
+  return(c(sum(-2*x^2*diff), sum(-2*x*diff), sum(-2*diff)))
+}
+my.fit.fun = function(my.par,x, y)
+{
+  sum((y - my.par[1]*x^2 - my.par[2]*x - my.par[3])^2)
+}
+my.par = c(1,1,1)
+optim.out = suppressWarnings(optim(my.par,my.fit.fun,gr=my.fit.gradient,
+                                   x=x, y=y,method="BFGS"))  
+optim.out$par
+optim.out$value
+plot(x, y, main = "Fit Quadratic Function to Data")
+lines(x, optim.out$par[1]*x^2 + optim.out$par[2]*x + optim.out$par[3])
+```
+
+## Question 7
+*(10 points)*
+
+Estimate the uncertainties in the parameters $a$, $b$, and $c$ for the model in Q7, using the bootstrap. Create 1000 bootstrapped datasets. Provide 95% intervals for each parameter, using `quantile()` with appropriate inputs for the argument `prob`. You need not generate any plots.
+```{r linewidth=80}
+B= 1000
+indices = sample(length(x),B*length(x),replace=TRUE)
+x.array = matrix(x[indices],nrow=B)
+y.array = matrix(y[indices],nrow=B)
+my.fit.gradient = function(my.par,x, y)
+{
+  diff = y- my.par[1]*x^2 - my.par[2]*x - my.par[3]
+  return(c(sum(-2*x^2*diff), sum(-2*x*diff), sum(-2*diff)))
+}
+my.par = c(1,1,1)
+my.fit.fun = function(my.par,x, y)
+{
+  sum((y - my.par[1]*x^2 - my.par[2]*x - my.par[3])^2)
+}
+my.fun = function(x,y)
+{
+  optim.out = suppressWarnings(optim(my.par,my.fit.fun,gr=my.fit.gradient,
+                                   x=x, y=y,method="BFGS"))  
+  return(optim.out$par)
+}
+out= matrix(rep(NA, 3*B), nrow = B)
+for (ii in 1:B){
+  out[ii, ] = my.fun(x.array[ii, ], y.array[ii, ])
+}
+a.hat = out[,1]
+b.hat = out[,2]
+c.hat = out[,3]
+apply(out, 2, sd)
+quantile(a.hat, probs = c(0.025, 0.975))
+quantile(b.hat, probs = c(0.025, 0.975))
+quantile(c.hat, probs = c(0.025, 0.975))
+```
+
+## Question 8
+*(10 points)*
+
+Let's say you have a function with multiple roots, such as
+$$
+y = \cos(x) ~~~ x \in [-5\pi,5\pi] \,.
+$$
+If you attempt to use `uniroot()` to find all the roots, it will fail. Your job: find a function that will return *all ten roots* of this equation. You may need to install a new package! Display these ten roots, all divided by $\pi$. Note: remember that `pi` is a built-in constant in `R`, so you do not have to hard-wire this number in your solution. (Hint: Notes 7A gives a link to a page that lists `R`'s numerical tools.)
+```{r linewidth=80, message=FALSE, warning=FALSE}
+if ( require(rootSolve) == FALSE ) {
+  install.packages("rootSolve",repos="https://cloud.r-project.org")
+  library(rootSolve)
+}
+f= function(x){cos(x)}
+res= uniroot.all(f, interval = c(-5*pi, 5*pi))
+res/pi
+```
+
+## Question 9
+*(10 points)*
+
+Jumble, the scrambled-word game that is syndicated in many newspapers, can be hard. If we can have the computer play Jumble for us, well...it would be easier. Maybe not as fulfilling, but certainly easier.
+
+Construct a function called `matchDict` that utilizes the `permn()` function of the `combinat` package and the 120,000+ length character vector `GradyAugmented` in the `qdapDictionaries` package so as to return possible unscrambled solutions given a scrambled input. `permn()` will output a list of all permutations of the letters in the input word; you need to combine these letters back into candidate words and determine which of the candidate words is in the `GradyAugmented` vector. (`permn()` is a useful tool for generating permutations, hence the idea for this exercise.) For instance, if you input "nidkr", you should get "drink" as your only output. Show output for "rneup", "srsets", and "LYPELU". Note: if your input is not a single string, have your function return `NULL`, and if your input is an upper-case string, convert it to lower-case: the `GradyAugmented` vector consists of lower-case strings. Also, return only unique instances of words. Hint: if you need to paste letters together, use `paste()` and look closely at its arguments to make sure you set the right argument to the right value.
+```{r linewidth=80}
+if ( require(combinat) == FALSE ) {
+  install.packages("combinat",repos="https://cloud.r-project.org")
+  library(combinat)
+}
+if ( require(qdapDictionaries) == FALSE ) {
+  install.packages("qdapDictionaries",repos="https://cloud.r-project.org")
+  library(qdapDictionaries)
+}
+
+matchDict = function(x){
+  if (length(x) > 1){
+    return (NULL)
+  } else{
+  x = tolower(x)
+  all_perms = permn(unlist(strsplit(x, "")))
+  candidate_words = unique(sapply(all_perms, 
+                                  function(x){paste(x, collapse="")}))
+  return(intersect(candidate_words, GradyAugmented))
+  }
+}
+matchDict("rneup")
+matchDict("srsets")
+matchDict("LYPELU")
+```
+
+## Question 10
+*(10 points)*
+
+The bootstrap is one type of what are called "resampling tests." Another type of resampling test is the permutation test. Assume you observe a series of $(x,y)$ pairs; for instance, $x$ might be a factor variable with two levels representing treatment groups, and $y$ might be the observed responses. In this context, you might be interested in seeing if the difference in the mean values of $y$ for each treatment group is either significantly different from zero (a two-sided hypothesis test) or significantly less than or greater than zero (a one-sided test). In a permutation test, you estimate the p-value by randomly shuffling the $x$ vector (while leaving the $y$ vector intact!), then computing the difference, and repeating until you build up a vector of differences, and seeing, e.g., how many of the differences generated via permutation are greater than the actual difference you observe.
+
+In the code chunk below, $x$ and $y$ are the observed data. Generate the observed difference between the means for the groups $x = 0$ and $x = 1$. Then code a permutation test. Note that you cannot use `permn()` here to generate all the possible permutations for the $x$ vector, as that would be $\sim 10^{18}$ permutations. So: generate 10,000 permutations, save the differences for each, and see how many of the 10,000 differences are greater than what you observe. In the end, do you reject or fail to reject the null hypothesis that the actual difference in population means is zero?
+```{r linewidth=80}
+set.seed(1002)
+x = c(rep(0,10),rep(1,10))
+y = x+rnorm(20,sd=1.5)
+observed.diff = diff(tapply(y,x,mean))
+B = 10000
+samples = sample(x, length(x)*B, replace = TRUE)
+data.array= matrix(samples, nrow= B)
+f= function(x){
+  diff(tapply(y, x, mean))
+}
+res= apply(data.array, 1, f)
+length(which(res > observed.diff))/B
+```
+```
+Because the p-value is small, we reject the null hypothesis that the 
+actual difference in population means is zero. 
+```

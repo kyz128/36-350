@@ -1,0 +1,126 @@
+---
+title: "Sampling and Simulation"
+author: "36-350 -- Statistical Computing"
+date: "Week 6 -- Fall 2020"
+output:
+  slidy_presentation:
+    font_adjustment: -1
+  beamer_presentation: default
+---
+
+```{r,echo=FALSE}
+set.seed(101)
+```
+
+Motivation
+===
+
+To make inferences about a random process, we sometimes (actually, often) have to make use of simulations.
+
+For instance: how many spins, on average, are necessary to complete a game of Chutes and Ladders? The random process here is the time series of results from using the game's spinner. In theory, one could compute this quantity analytically, if one is a medieval monk and willing to laboriously write down every possible pathway through the board in an illuminated manuscript. In practice, we would use `sample()` (which by default samples from a discrete uniform distribution, which is the distribution that governs a spinner).
+
+Sampling
+===
+
+Simulations involve sampling from one or more probability mass functions (pmfs) and/or one or more probability density functions (pdfs). When simulating, follow these general rules:
+
+- if the pmf or pdf has a coded sampling function (e.g., `rnorm()`), *use that function*! Don't reinvent the wheel.
+- if there is no coded sampling function, then (a) if you can easily work with the cdf, attempt to code an *inverse transform sampler*; or (b) if you cannot easily work with the cdf, attempt to code a *rejection sampler*. 
+
+The advantage of inverse transform sampling is that it is more computationally efficient: it is built upon sampling from a Uniform(0,1), and *every* sample from that distribution is transformed a sample from $f(x)$.
+
+What Samplers Does R Provide?
+===
+
+If you need to know, look [here](http://cran.r-project.org/web/views/Distributions.html).
+
+Base R provides samplers for the following distributions:
+
+- beta, binomial, (evil) Cauchy, chi-square, exponential, F, gamma, geometric, hypergeometric, logisitic, lognormal, negative binomial, normal, Poisson, t, uniform, and Weibull.
+
+Many other distributions have samplers available through packages such as `distr`, `extraDistr`, `MASS`, `VGAM`, and `RMKdiscrete`, among others.
+
+**Again: if you know the name of the distribution, search for a sampler before coding your own!**
+
+Sampling Example
+===
+
+Let's sample 1000 sets of 10 data sampled from an exponential distribution with mean 1, then determine the mean of the data in each row. (Each row is an observation$-$there are 1000 of these$-$and each column represents a separate measurement for a given observation.)
+```{r fig.height=4,fig.width=4,fig.align="center"}
+set.seed(101)
+n.obs  = 1000
+n.data = 10
+data = matrix(rexp(n.data*n.obs,rate=1),ncol=n.data)
+mean.vector = apply(data,1,mean) # you really should use rowMeans(data) here
+hist(mean.vector,col="burlywood",probability=TRUE)
+```
+
+Inverse Transform Sampling
+===
+
+Assume you are given a PDF $f(x)$ that you need to sample data from, and a sampler is unavailable. Further, assume that you either know the CDF $F(x)$ or can derive its analytic form via integration.
+
+Example:
+$$
+f(x) = \frac{x}{2} ~~,~~ x \in [0,2] ~~\Rightarrow~~ F(x) = \frac{x^2}{4} ~~,~~ x \in [0,2]
+$$
+(We need not write down the rest of $F(x)$ as we cannot sample values outside the domain of $f(x)$ anyway.)
+
+Inverse transform sampling works by making use of the fact that the range of $F(x)$ is [0,1] by definition. One samples a number $u$ from a Uniform(0,1) distribution, sets that number equal to $F(x)$, and derives $x = F^{-1}(u)$. Done. $x$ is our final sampled value.
+
+Inverse Transform Sampling: Example
+===
+
+```{r fig.height=4,fig.width=4,fig.align="center"}
+set.seed(303)  # Reproducibility n'at
+u = runif(100) # We will sample 100 data from the distribution given above
+x = sqrt(4*u)  # Inverse transform - voila, our 100 sampled values
+
+hist(x,probability=TRUE,col="aquamarine4",main="n = 100 sampled values from f(x)=x/2",xlim=c(0,2))
+p.x = seq(0,2,by=0.01)
+p.y = p.x/2
+lines(p.x,p.y,lwd=3)
+```
+
+Advantage: computationally efficient (no "wasted" samples). Disadvantage: requires an analytically specifiable CDF that you can invert.
+
+Rejection Sampling
+===
+
+Assume you are given a PDF $f(x)$ that you need to sample data from, and a sampler is unavailable. Further, assume that you either don't know the CDF $F(x)$, or you cannot derive its analytic form via integration.
+
+In rejection sampling, you in effect draw a rectangle around your distribution and sample points "below the curve". For $f(x) = x/2$, you'd have a picture like this:
+```{r echo=FALSE,fig.height=4,fig.width=4,fig.align="center"}
+plot(seq(0,2,by=0.01),seq(0,2,by=0.01)/2,typ="l",lwd=2,col="firebrick2",xlab="x",ylab="f(x)")
+polygon(c(0,2,2,0,0),c(0,0,1,1,0),lty=2)
+arrows(0.5,0,0.5,1,code=3)
+arrows(0,0.7,2,0.7,code=3)
+text(0.7,0.85,labels="[0,max(f(x))]")
+text(1.7,0.625,labels="[x_min,x_max]")
+```
+
+Rejection Sampling: Example
+===
+
+In the previous plot, the domain is [0,2] and the range is [0,max($f(x)$)=1].
+
+Let's assume again that we want to sample 100 data from this distribution.
+```{r fig.height=4,fig.width=4,fig.align="center"}
+set.seed(404)
+k = 100           # number of data
+x = rep(NA,k)     # vector that will hold the sampled data
+ii = 1
+while ( ii <= k ) {
+  x[ii] = runif(1,min=0,max=2)            # sample along the horizontal direction
+  if ( runif(1,min=0,max=1) < x[ii]/2 ) { # then sample along the vertical direction
+    ii = ii + 1   # if the vertical sample is "below the curve", keep x[ii], increase index
+  }
+}
+
+hist(x,probability=TRUE,col="aquamarine4",main="n = 100 sampled values from f(x)=x/2",xlim=c(0,2))
+p.x = seq(0,2,by=0.01)
+p.y = p.x/2
+lines(p.x,p.y,lwd=3)
+```
+
+Advantage: straightforward to code. Disadvantage: computationally inefficient (many "wasted" samples that lie "above the curve").

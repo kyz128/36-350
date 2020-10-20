@@ -1,0 +1,354 @@
+---
+title: "Lab: Week 3"
+author: "36-350 -- Statistical Computing"
+date: "Week 3 -- Fall 2020"
+output:
+  pdf_document:
+    toc: no
+  html_document:
+    toc: true
+    toc_float: true
+    theme: spacelab
+---
+
+Name: Kimberly Zhang
+
+Andrew ID: kyz
+
+You must submit **your own** lab as a PDF file on Gradescope.
+
+```{r wrap-hook,echo=FALSE}
+library(knitr)
+hook_output = knit_hooks$get('output')
+knit_hooks$set(output = function(x, options) {
+  # this hook is used only when the linewidth option is not NULL
+  if (!is.null(n <- options$linewidth)) {
+    x = knitr:::split_lines(x)
+    # any lines wider than n should be wrapped
+    if (any(nchar(x) > n)) x = strwrap(x, width = n)
+    x = paste(x, collapse = '\n')
+  }
+  hook_output(x, options)
+})
+```
+
+---
+
+# Basic Strings
+
+## Question 1
+*(4 points)*
+
+*Notes 3A (4)*
+
+Make a single string with your first and last names, and (programmatically) count the number of characters.
+```{r linewidth=80}
+my_name = "Kimberly Zhang"
+nchar(my_name)
+```
+
+## Question 2
+*(4 points)*
+
+*Notes 3A (4)*
+
+Make a vector of strings of length two, with your first name first and then last name, and (programmatically) count the number of characters in each.
+```{r linewidth=80}
+my_name = c("Kimberly", "Zhang")
+nchar(my_name)
+```
+
+## Question 3
+*(4 points)*
+
+*Refer Back to Week 1*
+
+Output the vector with the second element removed. Do this *two* different ways: by indicating which element you want, in square brackets; and by indicating which element you *don't* want, in square brackets with a minus sign.
+```{r linewidth=80}
+match_first = which(my_name == "Kimberly")
+match_second = which(my_name == "Zhang")
+my_name[match_first]
+my_name[-match_second]
+```
+
+## Question 4
+*(4 points)*
+
+*Notes 3A (5)*
+
+Transform the vector so that the words have all uppercase characters.
+```{r linewidth=80}
+toupper(my_name)
+```
+
+## Question 5
+*(4 points)*
+
+*Not Covered in Notes*
+
+Make a string with "Regards," and then your first name, separated by a newline character. Print it to the console via `print()` and then via `cat()`. Comment on the difference.
+```{r linewidth=80}
+signature = "Regards,\nKimberly"
+print(signature)
+cat(signature)
+```
+```
+print shows literal source code output whereas cat converts the special 
+characters into readable form. 
+```
+
+## Question 6
+*(4 points)*
+
+*Notes 3A (4)*
+
+Count the number of characters in the string in the last question. Is the comma counted? The newline counted?
+```{r linewidth=80}
+nchar(signature)
+```
+```
+Both the comma and the newline character were counted. 
+```
+
+---
+
+```{r linewidth=80}
+bill = "Bill Clinton"
+others = c("George Bush", "Ronald Reagan", "Jimmy Carter", "Gerald Ford")
+```
+
+---
+
+## Question 7
+*(4 points)*
+
+*Notes 3A (6)*
+
+Display the first five characters of the string `bill`.
+```{r linewidth=80}
+substr(bill, 1, 5)
+```
+
+## Question 8
+*(4 points)*
+
+*Refer Back to Week 1*
+
+Join `bill` and `others` together into one vector of strings, called `presidents`.
+```{r linewidth=80}
+presidents = append(others, bill)
+presidents
+```
+
+## Question 9
+*(4 points)*
+
+*Notes 3A (6)*
+
+Display the last three letters of each of the strings in the vector `presidents`.
+```{r linewidth=80}
+substr(presidents, nchar(presidents)-2, nchar(presidents))
+```
+
+# Regular Expressions + Extraction
+
+Below, we read in lines from Hillary Clinton's speech at the 2016 Democratic National Convention. (The `readLines()` function reads in a text file line-by-line: each line is a character string, and the vector of strings makes up the entire file.)
+```{r linewidth=80}
+clinton.lines = readLines("http://www.stat.cmu.edu/~pfreeman/clinton.txt")
+```
+
+## Question 10
+*(4 points)*
+
+*Notes 3B (2-3)*
+
+Using a regex literal and `grep()`, display the line numbers in `clinton.lines` that contain "Bill". Also, display the lines of text that contain "Bill". (Hint: try setting `value=FALSE` and `value=TRUE`.)
+```{r linewidth=80}
+grep("Bill", clinton.lines, value = FALSE)
+grep("Bill", clinton.lines, value = TRUE)
+```
+
+## Question 11
+*(4 points)*
+
+*Notes 3B (3) and Refer Back to Week 1*
+
+Show, using the line numbers from the last problem from `grep()` with `value=FALSE`, how the lines of text containing "Bill" can be retrieved from `clinton.lines` through direct indexing, i.e., without a call to `grep()` with `value=TRUE`. Note: this is just to check your understanding of indexing; when it comes to retrieving and displaying matched text, using `grep()` with `value=TRUE` is easier; you should stick to it as the default, below.
+```{r linewidth=80}
+line_num = grep("Bill", clinton.lines)
+clinton.lines[line_num]
+```
+
+## Question 12
+*(4 points)*
+
+*Notes 3B (2-3)*
+
+Display the lines of text in `clinton.lines` that contain "Bill" or "Chelsea". Also, display the lines of text that contain "Bill" or "Chelsea" or "Tim".
+```{r linewidth=80}
+grep("Bill|Chelsea", clinton.lines, value = TRUE)
+grep("Bill|Chelsea|Tim", clinton.lines, value = TRUE)
+```
+
+## Question 13
+*(4 points)*
+
+*Notes 3B (4-5)*
+
+Display the lines of text in `clinton.lines` that contain "Trump" and then a punctuation mark.
+```{r linewidth=80}
+grep("Trump[[:punct:]]", clinton.lines, value = TRUE)
+```
+
+## Question 14
+*(4 points)*
+
+*Notes 3B (4-5)*
+
+Display the lines of text in `clinton.lines` that contain "Trump" and then anything but a punctuation mark.
+```{r linewidth=80}
+grep("Trump[^[:punct:]]", clinton.lines, value = TRUE)
+```
+
+## Question 15
+*(4 points)*
+
+*Notes 3B (4-5)*
+
+Display the lines of text in `clinton.lines` that contain "Bill" without a following punctuation mark, or "Trump" with a following punctuation mark.
+```{r linewidth=80}
+grep("Bill[^[:punct:]]|Trump[[:punct:]]", clinton.lines, value = TRUE)
+```
+
+## Question 16
+*(4 points)*
+
+*Notes 3B (7-9)*
+
+Display the lines of text in `clinton.lines` that contain numbers with at least three digits.
+```{r linewidth=80}
+grep("[0-9]{3,}", clinton.lines, value = TRUE)
+```
+
+## Question 17
+*(4 points)*
+
+*Notes 3B (4,7)*
+
+Display the lines of text in `clinton.lines` that contain a number, then "%" (a percent symbol).
+```{r linewidth=80}
+grep("[0-9]+%", clinton.lines, value = TRUE)
+```
+
+## Question 18
+*(4 points)*
+
+*Notes 3B (6)*
+
+Display the lines of text in `clinton.lines` that contain "!", an exclamation mark.
+```{r linewidth=80}
+grep("!", clinton.lines, value = TRUE)
+```
+
+## Question 19
+*(4 points)*
+
+*Notes 3B (4,6-7)*
+
+Display the lines of text in `clinton.lines` that contain a capitalized word followed by a period.
+```{r linewidth=80}
+grep("[A-Z][a-z]*\\.", clinton.lines, value = TRUE)
+```
+
+---
+
+Below, we read in lines of data from the Advanced National Seismic System (ANSS), on earthquakes of magnitude 6+, between 2002 and 2017. We display the first 15 lines. (You don't have to do anything yet.) 
+```{r linewidth=80}
+anss.lines = readLines("http://www.stat.cmu.edu/~pfreeman/anss.htm")
+head(anss.lines,15)
+```
+
+---
+
+## Question 20
+*(4 points)*
+
+*Notes 3B (4,7-9)*
+
+This looks like webpage code mixed in with earthquake data. We don't care about the first nine lines, and it looks as if the data we want starts on line 10. Importantly, every line of data contains a date, of the form YYYY/MM/DD, as in "2002/01/01". Design a regular expression, call it `date.pattern`, to match to these dates. (Hint: use quantifiers to make `date.pattern` concise.). Use this and `grep()` to retrieve the lines of text containing earthquake data. Call the result `date.lines`. How many lines of data are there? Show the first 2 and the last 2 lines (via the use of `head()` and `tail()`). When was the last earthquake recorded and what was its magnitude?
+```{r linewidth=80}
+date.pattern = "20[0-9]{2}/[0-9]{2}/[0-9]{2}"
+date.lines = grep(date.pattern, anss.lines, value = TRUE)
+length(date.lines)
+head(date.lines, 2)
+tail(date.lines, 2)
+```
+```
+There are 2426 lines of data. The last earthquake recorded was in 2017/02/24.
+The magnitude was 6.90. 
+```
+
+## Question 21
+*(4 points)*
+
+*Notes 3B (4,6-9)*
+
+Look back at the lines of earthquake data printed above. The columns for `Lat` and `Lon` give the latitude and longitude, respectively, of the earthquake. Importantly, this takes the form X.XXXX, XX.XXXX, XXX.XXXX, or any of these forms with a leading minus sign, where X is a number. Design a regular expression to match these entries, call it `geo.pattern`. Test it out on the trial string vector below, with `grep()`, and make sure that you match all the strings. (Hint: build the regular expression, "left to right", following this logic: an optional minus sign, 1 to 3 digits, a period, then exactly 4 digits.)
+
+```{r linewidth=80}
+trial.str.vec = c("-55.2140", "-129.0000", "6.3030", "125.6500", "-17.9830")
+geo.pattern = "-?[0-9]{1,3}.[0-9]{4}"
+grep(geo.pattern, trial.str.vec, value = TRUE)
+```
+
+## Question 22
+*(4 points)*
+
+*Notes 3B (4,6-9) and Notes 3C (2-3)*
+
+Design a regular expression `geo.pattern.sp` that captures not only the latitude/longitude pattern (like `geo.pattern`), but additionally, any number of leading spaces (1 or more). Test it out on the trial string vector below, with `regexpr()` and `regmatches()`. Make sure that you match all the strings, and in each case the extracted text is the entire string.
+```{r linewidth=80}
+trial.str.vec.sp = c(" -55.2140", " -129.0000", "    6.3030", "  125.6500", "  -17.9830")
+geo.pattern.sp = " +-?[0-9]{1,3}.[0-9]{4}"
+reg_exp = regexpr(geo.pattern.sp, trial.str.vec.sp, useBytes = TRUE)
+regmatches(trial.str.vec.sp, reg_exp)
+```
+
+## Question 23
+*(4 points)*
+
+*Notes 3B (4,6-9) and Notes 3C (2-3)*
+
+Finally, design a regular expression `geo.pattern.pair` that captures a latitude pattern, then any number of spaces (1 or more), then a longitude pattern. Really, this is just the concatenation of the regexes you already designed, `geo.pattern` and `geo.pattern.sp`. Use `geo.pattern.pair`, with `regexpr()` and `regmatches()`, in order to extract the latitude/longitude pairs from each line of earthquake data in `date.lines`. Call the result `lat.lon.pairs`, and display the first 3 entries, checking visually that it matches the results printed at the top of this lab.
+```{r linewidth=80}
+geo.pattern.pair = paste(geo.pattern, geo.pattern.sp, sep = "")
+reg_exp = regexpr(geo.pattern.pair, date.lines, useBytes = TRUE)
+lat.lon.pairs = regmatches(date.lines, reg_exp)
+head(lat.lon.pairs, 3)
+```
+
+## Question 24
+*(4 points)*
+
+*Notes 3B (7-8,11)*
+
+Apply `strsplit()` to `lat.lon.pairs[1:2]` with `split` set equal to a regex that captures any number of spaces (1 or more), and show the results. Check that the two elements of the return list have the same number of strings. You'll find that the results have an extra, empty string. Clean this up by doing the following: (a) apply `unlist()` to `lat.lon.pairs[1:2]` and save the result to a variable; (b) identify the indices of all elements of your new vector variable for which the value is the empty string; (c) remove those elements; and (d) put the clean-up vector into a two-row matrix. Note: (b) and (c) can be effectively combined into one expression. Also note that since matrices get populated by filling the first column, then the second column, etc., you'll have to display the transpose of the matrix you define for step (d).
+```{r linewidth=80}
+res = strsplit(lat.lon.pairs[1:2], split = " +")
+res
+flattened = unlist(lat.lon.pairs[1:2])
+t(matrix(flattened, ncol = 2))
+```
+
+## Question 25
+*(4 points)*
+
+*Notes 3B (3-9)*
+
+Design a regex to match all patterns of the following form: any letter (1 or more), then a punctuation mark, then "ve" or "ll" or "t", then a space or a punctuation mark. Call it `my.pattern`. Check, with `grep()`, that it matches all the strings below.
+```{r linewidth=80}
+trial.str.vec = c("we've.", "I'll ", "don't!")
+my.pattern = "[[:alpha:]]+[[:punct:]](ve|ll|t)( |[[:punct:]])"
+grep(my.pattern, trial.str.vec, value = TRUE)
+```
+

@@ -1,0 +1,110 @@
+---
+title: "Base R Visualization"
+author: "36-350 -- Statistical Computing"
+date: "Week 5 -- Fall 2020"
+output: 
+  slidy_presentation: 
+    font_adjustment: -1
+---
+
+Caveat!
+===
+
+This set of notes is simply meant to point you to a few base `R` visualization functions such as `hist()` and `plot()`.
+
+*It will not tell you* **when** *to use particular visualizers or* **what** *the output means*.
+
+(For instance, we will not discuss when you'd use a histogram as opposed to a boxplot. That's for other courses.)
+
+Example Data
+===
+
+Here we will load some data to visualize using functions from Notes 5A:
+```{r}
+require(readr)
+file.url = url("http://www.stat.cmu.edu/~pfreeman/GalaxyStatistics.txt") # see "connections"
+df = read_delim(file.url,delim=" +")
+names(df)
+nrow(df)
+```
+(I generally use `df` to denote a data frame.) The data are two metrics of galaxy light concentration as measured for 8358 galaxies viewed in five different sky fields.)
+ 
+Univariate Visualization: Histogram
+===
+
+<tt>
+hist(x,breaks=&lt;value&gt;,probability=&lt;value&gt;,...)
+</tt>
+
+- *x*: the variable to visualize
+
+- *breaks*: if a single number, the number of bins; if a vector, the placement of the bin boundaries
+
+- *probability*: if `FALSE` (default), a frequency histogram is generated; if `TRUE`, a pdf-like histogram is generated
+
+Note: `hist()` features "invisible return"; if you say `hist(...)`, a histogram is plotted and nothing is printed in the console, while if you say `h = hist()`, a histogram is plotted and an `R` object containing information about the histrogram (break point placement, etc.) is assigned to the variable `h`.
+
+Univariate Visualization: Histogram
+===
+
+```{r fig.height=6,fig.width=6,fig.align="center"}
+h = hist(df$Gini,breaks=30,probability=TRUE,xlab="Gini",main="Example",col="blue")
+names(h)
+h$counts
+```
+
+Univariate Visualization: Boxplot
+===
+
+<tt>
+boxplot(x,...)
+
+boxplot(formula,data=&lt;value&gt;,...)
+</tt>
+
+- *x*: the variable to visualize
+
+- *formula*: if creating side-by-side boxplots, the specification of how grouping is to be done
+
+- *data*: the data frame in which the grouping variable exists
+
+Note: like `hist()`, `boxplot()` features "invisible return".
+
+Univariate Visualization: Boxplot
+===
+
+```{r fig.height=6,fig.width=6,fig.align="center"}
+boxplot(df$Concentration,xlab="Concentration",cex.lab=1.5,main="Another Example",col="red")
+```
+
+Univariate Visualization: Boxplot
+===
+
+```{r fig.height=6,fig.width=6,fig.align="center"}
+boxplot(Concentration~Field,data=df,xlab="Concentration",cex.lab=1.5,main="Yet Another Example",
+        col="turquoise")
+```
+The formula tells `boxplot()` to split the data frame using values of the factor variable `Field` and to compute boxplots of `Concentration` for each field. Hence the formula is essentially a shorthand for performing a split-apply-combine operation.
+
+Bivariate Visualization: Plot
+===
+
+<tt>
+plot(x,y,...)
+</tt>
+
+- *x* and *y*: the variables to visualize
+
+Note: `plot()` does *not* feature "invisible return".
+
+Bivariate Visualization: Plot
+===
+
+```{r fig.height=6,fig.width=6,fig.align="center"}
+plot(df$Gini,df$Concentration,xlab="Gini",ylab="Concentration",main="One Last Another Example",
+     col="darkgreen",pch=19,cex=0.4)
+```
+
+[This website](http://www.stat.columbia.edu/~tzheng/files/Rcolor.pdf) shows you the full palette of colors in `R`. (`papayawhip`, yinz.)
+
+[This other website](http://www.sthda.com/english/wiki/r-plot-pch-symbols-the-different-point-shapes-available-in-r) shows your plotting symbol options (`pch`).

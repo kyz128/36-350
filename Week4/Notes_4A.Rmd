@@ -1,0 +1,148 @@
+---
+title: "Split-Apply-Combine: Base R"
+author: "36-350 -- Statistical Computing"
+date: "Week 4 -- Fall 2020"
+output:
+  slidy_presentation:
+    font_adjustment: -1
+  ioslides_presentation: default
+---
+
+```{r echo=FALSE}
+set.seed(101)
+```
+
+Split-Apply-Combine
+===
+
+The split-apply-combine paradigm is straightforward: you take a data frame that contains one or more columns with factor variables (i.e., data measured in $n$ categories), and
+
+- *split* it, e.g., break the data frame up into a list of smaller data frames, one for each factor or combination of factors;
+
+- *apply* a function to each of the smaller data frames; and
+
+- *combine* the results together. (Note that there is no explicit "combine" function in `R`, per se; combination often "just occurs" as a by-product of application.)
+
+One can do this with base `R` functions, although there are some limitations that can crop up from time to time. (See, e.g., [this paper in the Journal of Statistical Software](https://www.jstatsoft.org/article/view/v040i01) for a discussion of these limitations.) Thus after discussing typical base `R` functions we will begin venturing into Hadley Wickham's `tidyverse`, to talk about `dplyr`, etc.
+
+Digression: Factor Variables
+===
+
+It is inevitable that in statistical analyses you will at some point have to deal with factors: variables with discrete values that often do not clearly map to the real number line. For instance, the `state` dataset (part of `R`'s `datasets` package) includes `state.region`, which labels each state with the region of the U.S. it is in:
+```{r}
+state.region
+```
+Note that there are four (not five) levels for this factor: "Northeast," "South," "North Central," and "West."
+```{r}
+levels(state.region)
+```
+
+Digression: Factor Variables
+===
+
+How are factor variables treated in regression? As numbers, counting from one.
+```{r}
+typeof(state.region)  # R views the factors as integers, not words
+class(state.region)   # ...and it knows the factors are factors
+levels(state.region)  # The levels are 1, 2, 3, ... from left to right
+as.numeric(state.region)
+```
+
+Split
+===
+
+The base `R` `split()` function splits up the rows of a data frame (or elements of a vector) according to the levels of one or more factors.
+
+Usage: `split(df,f=my.index)`, where `df` is a data frame (vectors are allowed too) and `my.index` specifies the factor variable(s). The output is a list of data frames (or vectors).
+```{r}
+galaxy.df = read.table("http://www.stat.cmu.edu/~pfreeman/GalaxyStatistics.txt",header=TRUE,
+                       stringsAsFactors=TRUE)
+dim(galaxy.df)           # a field and two statistics for 8358 galaxies
+levels(galaxy.df$Field)  # IDs of the five fields
+
+galaxy.split = split(galaxy.df,f=galaxy.df$Field)
+typeof(galaxy.split)
+names(galaxy.split)
+head(galaxy.split[[1]],5)  # let's look at the first list component
+```
+
+Apply
+===
+
+<tt>
+apply(&lt;data frame/matrix&gt;,MARGIN=&lt;dim&gt;,FUN=&lt;function&gt;)
+</tt>
+
+- `<dim>` = 1 for rows, 2 for columns, etc. The dimensionality is not limited to 2!
+
+- `<function>` is an existing `R` function or one that you write yourself
+
+Example: you have a data frame whose two columns contain three random samples from a standard normal and three random samples from a Uniform(0,1) distribution respectively. We determine the range, the mean, and the index of the maximum value in each column...
+```{r}
+set.seed(101)
+df = data.frame(n=rnorm(3),u=runif(3))
+apply(df,MARGIN=2,FUN=range)
+apply(df,MARGIN=2,FUN=mean)
+apply(df,2,which.max)         # dropping the argument names
+```
+
+Applying Your Own Function
+===
+
+To apply your own function: define it, then pass it along. Here, let's define a function that gives the index of the maximum value, and the maximum value itself, along each row of a matrix:
+```{r}
+mat = matrix(rnorm(9),nrow=3)
+my.fun = function(x) { return(c(which.max(x),max(x))) }  # Note: x is the row/column of interest
+mat
+apply(mat,1,my.fun)
+```
+
+Applying Your Own Function
+===
+
+Note: if `my.fun()` returns $k$ separate values, then the output will have $k$ rows, regardless of the value for `MARGIN`. When `MARGIN`=2, that's generally OK, but when it equals 1 you might want to transpose your output to create something more easily interpreted:
+```{r}
+t(apply(mat,1,my.fun))  # Now each row of output corresponds to a row of input.
+```
+
+Applying Your Own Function "On the Fly"
+===
+
+You need not define the function before the call to `apply()`:
+```{r}
+t(apply(mat,1,function(x){c(which.max(x),max(x))}))
+```
+
+What If Your Function Has More Than One Argument?
+===
+
+Up until now, the functions that are passed to `apply()` have a single argument (or only need to have a single argument specified, with the rest having default values), usually given as `x`.
+
+If you need to specify additional arguments for the function, specify them in the call to `apply()`:
+```{r}
+mat = matrix(runif(100),10,10)
+apply(mat,1,mean)               # compute row means
+apply(mat,1,mean,trim=0.1)      # compute 10% trimmed means for each row
+```
+
+apply() Return Values: Review
+===
+
+- if `my.fun()` returns a single value, `apply()` will return a vector of values, one for each row of input if `MARGIN` = 1, or each column of input if `MARGIN` = 2
+
+- if `my.fun()` returns a vector of values of length $k$, `apply()` will return a $k \times n$ matrix, where $n$ is the number of rows (or columns) of input if `MARGIN` = 1 (or 2)...you may need to transpose the output with `t()` to more easily interpret it, if `MARGIN` = 1
+
+- if `my.fun()` returns vectors of differents lengths for each input row (or column), the output of `apply()` will be a list of length the number of rows (or columns)
+
+- if `my.fun()` returns a list for each input row (or column), the output of `apply()` will be a list of lists of length the number of rows (or columns)
+
+Finally: Don't Use apply() To Do Everything
+===
+
+There are optimized functions that allow one to compute . . . 
+
+- sums along rows (or columns): `rowSums()` (or `colSums()`)
+
+- means along rows (or columns): `rowMeans()` (or `colMeans()`)
+
+- the position of the maximum value along each row of a matrix: `max.col()`

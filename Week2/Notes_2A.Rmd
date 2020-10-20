@@ -1,0 +1,89 @@
+---
+title: "Control-Flow Constructs"
+author: "36-350 -- Statistical Computing"
+date: "Week 2 -- Fall 2020"
+output: 
+  slidy_presentation: 
+    font_adjustment: -1
+---
+
+Control-Flow Constructs
+===
+
+The phrase "control-flow constructs" that `R`'s creators use to denote `if` and `while` and such.
+
+- You can find a full list of control-flow constructs by typing `?Control` in the `RStudio` console.
+
+- The constructs are among the reserved words in `R`'s command-line parser (meaning you cannot use them as variables). You can find a list of reserved words by typing `?Reserved` in the console.
+
+```{r error=TRUE}
+xx = 2
+if = 2
+```
+
+(Important note: if you want to knit an Rmd file which has a buggy code chunk, add `error=TRUE` in the first line of the chunk, e.g., <tt>```\{r error=TRUE\}</tt>).
+
+if-else
+===
+
+Here are basic examples of the use of the `if-else` construct:
+```{r}
+x = 2
+
+if ( x == 2 ) print(x)   # one line, no curly brackets
+
+if ( x == 2 ) {          # use curly brackets to enclose multiple commands over several lines
+  print(x)
+}
+
+if ( x == 2 ) {          # same idea, but now with an "else" thrown in
+  print(-x)
+} else {
+  print(x)
+}
+```
+(Note the `==`. `x == 2` is a relational operator, and returns `TRUE`. Use of a single `=` will lead to an exception being thrown.)
+
+if-else: Short-Circuiting
+===
+
+An if-else construct will evaluate until the first time the quantity in parentheses evaluates to `TRUE`. Below,  $x = 2$ <i>and</i> $x > 0$, but `foo` is not printed.
+```{r}
+if ( x == 2 ) { 
+  print(-x)
+} else if ( x > 0 ) {
+  print("foo")
+} else {
+  print("bar")
+}
+```
+
+if: Logical And and Or
+===
+
+You combine conditions within an `if` statement using `&&` (for "and") or `||` (for "or").
+
+- <b>IMPORTANT</b>: the difference between, e.g., `&&` and `&` is that the latter returns a logical vector that can have a length greater than 1 and the former returns a logical vector of length 1.
+
+```{r}
+u = c(TRUE,FALSE,TRUE)
+v = c(TRUE,TRUE,FALSE)
+u & v
+u && v
+```
+`x && y` only does a comparison between the first element of `u` and `v` and ignores the subsequent elements.
+
+Long story short: if you use `&&` in an `if` statement, make sure what is on either side of the `&&` are vectors of length one. Otherwise you may not get the behavior you expect when you run your code.
+
+ifelse
+===
+
+A compressed version of an `if-else` construct is provided by the `ifelse()` function:
+```
+ifelse(test,yes,no)
+```
+which means "if the object test returns TRUE, do whatever is specified by yes, otherwise do whatever is specified by no." For example:
+```{r}
+x = 2
+ifelse(x==2,TRUE,FALSE)
+```

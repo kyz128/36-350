@@ -1,0 +1,127 @@
+---
+title: "Loops: for() and while()"
+author: "36-350 -- Statistical Computing"
+date: "Week 2 -- Fall 2020"
+output:
+  slidy_presentation: 
+    font_adjustment: -1
+---
+
+for() Loop
+===
+
+A `for()` loop repeatedly runs a block of code while (usually) incrementing the value of a counter variable. Its typical structure is
+
+<tt>
+for ( &lt;var name&gt; in &lt;min counter value&gt;:&lt;max counter value&gt; ) {<br>
+&nbsp;&nbsp;&lt;do stuff&gt;<br>
+}
+</tt>
+
+Here we compute $x^2$ for $x \in [1,10]$:
+```{r}
+x.sq = rep(NA,10)
+for ( ii in 1:10 ) {  # Why ii and not i? Easier to search for when debugging large code bases.
+  x.sq[ii] = ii^2
+}
+x.sq
+```
+**NOTE**: one should, of course, utilize vectorization when one can. The above example is purely an academic example; one would really want to code this as `x.sq = (1:10)^2`. A decently good rule to follow is, when in doubt, code a `for()` loop first, get your full code base working, then see where you might be able to apply vectorization (while always checking that your output is unchanged as you update code).
+
+for() Loop: Alternative Incrementing Strategies
+===
+
+In the example on the last slide, the counter vector is `1:10`. You can specify this in other ways:
+```{r}
+for ( ii in seq(1,10,by=1) ) {  # More general than 1:10; allows steps of size > 1.
+  x.sq[ii] = ii^2
+}
+x.sq
+```
+
+Or you can specify that you are to step along each of the indices of $x$ in order:
+```{r}
+for ( ii in seq_along(x.sq) ) {  # No need to specify bounds; good if you change the length of x.sq
+  x.sq[ii] = ii^2
+}
+x.sq
+```
+
+for() Loop: Looping Over Names/Strings
+===
+
+The counter vector need not be numeric.
+```{r}
+str.vec = c("Pirates","Steelers","Penguins")
+for ( str in str.vec ) {
+  not = ""
+  if ( str == "Pirates") not = "not"
+  cat("The",str,"will",not,"win the championship this year.\n")
+}
+```
+
+while() Loop
+===
+
+A `while()` loop repeatedly runs a block of code until some condition is no longer true. The usual structure here is
+
+<tt>
+while ( &lt;condition&gt; == TRUE ) {<br>
+&nbsp;&nbsp;&lt;do stuff and possibly change condition to FALSE&gt;<br>
+}
+</tt>
+
+```{r}
+continue = TRUE
+x = 1
+while ( continue == TRUE ) {  # the "== TRUE" is actually not necessary here
+  if ( x <= 5 ) {
+    cat(x," ")
+  } else {
+    continue = FALSE
+  }
+  x = x+1
+}
+```
+
+for() vs. while()
+===
+
+When should you use `for()` and when should you use `while()`?
+
+- `for()` is good when you know what indices you will iterate over in advance
+
+- `while()` is good when you know the condition that needs to be fulfilled to stop, but you don't know when it will be fulfilled (so, e.g., the example on the last slide is not necessarily the best example to display for `while`, since we knew we were going to increment from $x$ = 1 to $x$ = 5 in advance)
+
+Note that every `for()` loop can be replaced with a `while()` loop, but *not* vice-versa.
+
+for() and while(): Breaking Out or Skipping Ahead
+===
+
+If at some point in a loop you want to skip the remaining commands and return to the loop's beginning, use `next`.
+
+If at some point in a loop you want to skip the remaining commands and exit the loop entirely, use `break`.
+
+```{r}
+for ( ii in 1:10 ) {
+  if ( ii >= 6 ) break
+  if ( ii >= 6 ) print("oops!")
+  if ( ii >= 3 ) next
+  print(ii)
+}
+ii
+```
+The loop skipped the final `print()` statement when $ii \geq 3$, hence we only see the numbers 1 and 2 output initially, and then we exited the loop when $ii$ = 6 (we know this because "oops!" was never printed).
+
+Infinite Loops
+===
+
+One can, in principle, create an infinite loop (on purpose...I create them all the time by accident) that will continue until a break is issued:
+```{r}
+#while ( TRUE ) { # Because TRUE == TRUE y'all
+#  input = readline("Name the best prof at CMU!")
+#  if ( input == "Freeman" ) break
+#  print("Try again.")
+#}
+```
+Note: a `repeat` block will behave the same way. See `?Control` for more details.

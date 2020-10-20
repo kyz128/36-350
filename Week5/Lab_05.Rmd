@@ -1,0 +1,261 @@
+---
+title: "Lab: Week 5"
+author: "36-350 -- Statistical Computing"
+date: "Week 5 -- Fall 2020"
+output:
+  pdf_document:
+    toc: no
+  html_document:
+    toc: true
+    toc_float: true
+    theme: spacelab
+---
+
+Name: Kimberly Zhang
+
+Andrew ID: kyz
+
+You must submit **your own** lab as a PDF file on Gradescope.
+
+```{r wrap-hook,echo=FALSE}
+library(knitr)
+hook_output = knit_hooks$get('output')
+knit_hooks$set(output = function(x, options) {
+  # this hook is used only when the linewidth option is not NULL
+  if (!is.null(n <- options$linewidth)) {
+    x = knitr:::split_lines(x)
+    # any lines wider than n should be wrapped
+    if (any(nchar(x) > n)) x = strwrap(x, width = n)
+    x = paste(x, collapse = '\n')
+  }
+  hook_output(x, options)
+})
+```
+
+---
+
+```{r linewidth=80}
+suppressMessages(suppressWarnings(library(tidyverse)))
+```
+
+---
+
+## Question 1
+*(5 points)*
+
+*Notes 5A (2-4)*
+
+Download `simple.txt` from the Canvas site. It is in the `DATA` directory. Use an external viewer (your choice) to look at the file. Then apply an appropriate function to read the file's contents into `R`. Show the names of the columns. Make sure the names are correct, and that there are eight columns. (Note: you may find that your first choice of function does not provide optimal results. If so, try another function. Note that `read_delim()` with a properly formatted regex might help here. If you use base `R` functionality, consider including the argument `stringsAsFactors=FALSE`.)
+```{r linewidth=80}
+simple<-read.table("simple.txt", stringsAsFactors = FALSE, header = TRUE)
+head(simple)
+```
+
+## Question 2
+*(5 points)*
+
+*Notes 5D (4-5)*
+
+Create a histogram for the `redshift` variable in the data frame input in Q1. Change the x-axis label to "Redshift". Add some color too.
+```{r linewidth=80}
+hist(simple$redshift, xlab = "Redshift", col = "blue")
+```
+
+## Question 3
+*(5 points)*
+
+*Notes 5A (2-4)*
+Read in the data file from Q1 but skip the header. Display the names that `R` gives to the columns. For `readr`, you may find sub-optimal results; if so, you would need to specify the column names as an argument. (You need not actually do that here.)
+```{r linewidth=80}
+simple.no.head<-read.table("simple.txt", stringsAsFactors = FALSE, skip = 1)
+colnames(simple.no.head)
+```
+
+## Question 4
+*(5 points)*
+
+*Notes 5A (2-4)*
+
+Read in the data file from Q1 but only read in the first four lines, while retaining the header.
+```{r linewidth=80}
+simple.first.four<-read.table("simple.txt", stringsAsFactors = FALSE, 
+                              header = TRUE, nrows = 4)
+simple.first.four
+```
+
+## Question 5
+*(5 points)*
+
+*Notes 5A (2-4)*
+
+Download `students.txt` from the Canvas site. It is in the `DATA` directory. Use an external viewer (your choice) to look at the file. Then apply an appropriate function to read the file's contents into `R`. Use an appropriate argument that ensures that each non-numerica column is treated as a vector of strings, and not a factor variable. (You may have done this back up in Q1.) Show that you've done this by displaying the type of the variable the column `Last Name`. (Use `typeof()`.)
+```{r linewidth=80}
+students<-read.table("students.txt", stringsAsFactors = FALSE, header= TRUE)
+typeof(students$Last.Name)
+```
+
+## Question 6
+*(5 points)*
+
+*Notes 5A (2-4)*
+
+Download `emline.csv` from the Canvas site. It is in the `DATA` directory. Use an external viewer (your choice) to look at the file. Then apply an appropriate function to read the file's contents into `R`. When you are done, show the mean and median values of the `sfr` column. Hint: if they are wildly different, you may need to adjust how you read in the data. Hint: look for numbers that represent missing data, and use an appropriate argument to tell `R` that those numbers should be converted to `NA`.
+```{r linewidth=80}
+emline<-read.csv("emline.csv", na.strings = -9999)
+mean(emline$sfr, na.rm = TRUE)
+median(emline$sfr, na.rm= TRUE)
+```
+
+## Question 7
+*(5 points)*
+
+*Notes 5D (9-10)*
+
+Make a bivariate scatter plot of `H_ALPHA` vs. `mass` (y vs. x, i.e., `H_ALPHA` is on the y-axis). Change the axis labels, change the point type to 19, and add some color.
+```{r linewidth=80}
+plot(emline$mass, emline$H_ALPHA, xlab = "Mass", ylab = "H Alpha", 
+     col = "blue", pch = 19)
+```
+
+## Question 8
+*(5 points)*
+
+*Notes 5A (2-4)*
+
+Redo Q6, but here use a combination of the functions `sum()` and `complete.cases()` to determine how many rows have no `NA` values. Also: if you use a `readr` function here, try to suppress the message about parsing specification, by wrapping your call to `read_csv()` with a call to `suppressMessages()`. Note: `complete.cases()` returns `TRUE` if a row has no `NA` values and `FALSE` otherwise. Remember that applying `sum()` to a vector of logicals returns the total number of `TRUE` values.
+```{r linewidth=80}
+emline<-read.csv("emline.csv", na.strings = -9999)
+mean(emline$sfr, na.rm = TRUE)
+median(emline$sfr, na.rm= TRUE)
+sum(complete.cases(emline))
+```
+
+## Question 9
+*(5 points)*
+
+*Notes 5A (2-4)*
+
+Download `students.csv` from the Canvas site. It is in the `DATA` directory. Use an external viewer (your choice) to look at the file. Then apply an appropriate function to read the file's contents into `R`. Apply appropriate arguments or other function calls after the fact to ensure that the first three columns of the final data frame (or tibble) are character vectors, and the fourth column is a factor variable. (Simply print out the data frame or tibble; the variable type will be shown.) (Hint: if you use a `readr` function, then the argument `col_types` can be a single string with one letter for each column: "c" for a character vector, "d" for double, "i" for integer, "f" for factor, etc.). Hint: if using base `R`, it is simplest to start with `stringsAsFactors=FALSE` and then convert one column to a factor variable.
+```{r linewidth=80}
+studentcsv<-read.csv("students.csv", skip = 6, stringsAsFactors = FALSE)
+studentcsv$Vegetarian <- as.factor(studentcsv$Vegetarian)
+studentcsv
+```
+
+## Question 10
+*(5 points)*
+
+*Notes 5A (5)*
+
+Download `bolts.xls` from the Canvas site. It is in the `DATA` directory. If you cannot view the file with EXCEL, there are 100 rows and two columns: `Hour` and `Length`. Read the file into `R`, compute for average `Length` for each value of `Hour`, then plot that average versus `Hour`. (Remember: the variable before the "versus" is the $y$ variable.) Note that if you pass a two-column data frame to `plot()`, it will know what to do. Hint: perhaps `group_by()` and `summarize()` here.
+```{r linewidth=80,  warning = FALSE, message = FALSE}
+require(readxl)
+bolts<-read_excel("bolts.xls")
+bolts %>% group_by(Hour) %>% summarize(Avg.Length = mean(Length)) %>% plot()
+```
+
+## Question 11
+*(5 points)*
+
+*Notes 5A (5)*
+
+Download `data.xlsx` from the Canvas site. It is in the `DATA` directory. Also in the `DATA` directory is `data.png`; download and open it. It is a screen shot of a portion of the data that indicates possibly problematic data. Read the file into `R` while properly dealing with these problematic data. Note that data actually exists in the field(s) marked "#########"; you need not actually do anything about that marker. Display just the four columns in which problematic data existed in the screen shot (use `select()`); those data should be replaced with `NA`.
+```{r linewidth=80}
+data<-read_excel("data.xlsx", na = c("999", "999.00"))
+data %>% select(Sex, RaceEthnicity, ADHD, Presentation)
+```
+
+## Question 12
+*(5 points)*
+
+*Notes 5B (3-7)*
+
+Extract the first two bullet-pointed text items on the wikipedia page for "Timeline of the Universe", using `rvest` functions. (Hint: review the notes to see how bullet-pointed items are delimited in HTML.)
+```{r linewidth=80}
+if ( require(rvest) == FALSE ) {
+  install.packages("rvest",repos="https://cloud.r-project.org")
+  library(rvest)
+}
+page<- read_html("https://en.wikipedia.org/wiki/Timeline_of_the_Universe")
+page %>% html_nodes("li") %>% .[1:2] %>% html_text()
+```
+
+## Question 13
+*(10 points)*
+
+*Notes 5B (3-7)*
+
+Fascinating. What's in the "Timeline of the far future"? How far out can we extrapolate? Apply `rvest` functions to extract the tables on this page, and show the last row of the longest table. If you do things correctly, you'll see that we can extrapolate out to 10 to the 10 to the 10 to the 56 years. That's a mighty long time. (Hint: to extract a particular element from a list in a piping enviroment, you can do <tt>`[[`(n)</tt>, where you would replace `n` with the number of the list element you want.)
+```{r linewidth=80}
+page<-read_html("https://en.wikipedia.org/wiki/Timeline_of_the_far_future")
+df <- page %>% html_nodes("table") %>%  `[[`(2) %>% html_table()
+tail(df, n=1)
+```
+
+## Question 14
+*(10 points)*
+
+*Notes 5B (3-7)*
+
+For Q10 of HW 3, you extracted the number of submitted astrophysics articles per month in 2019. My solution utilized `readLines()`, `regexpr()`, and `regmatches()`. Repeat the exercise here using `rvest` functions. The web page is <a href="https://arxiv.org/year/astro-ph/19">here</a>. Your final output should be a vector of numbers whose names are given by the built-in constant `month.abb`. Hint: utilize `html_nodes()` such that you are look for bolded content.
+```{r linewidth=80}
+arxiv = read_html("https://arxiv.org/year/astro-ph/19")
+num<-arxiv %>% html_nodes("b") %>% .[2:13] %>% html_text() %>% as.numeric(.)
+names(num) <- month.abb
+num
+```
+
+## Question 15
+*(5 points)*
+
+*Notes 5B (3-7)*
+
+When was the statistician William Sealy Gosset born? (He is the "Student" of "Student's t distribution.") Yes, you can look this up, but I'd rather you apply functions from the `rvest` library, in particular, `html_table()`, as applied to Gosset's wikipedia page. Once you have the list of tables, determine which one is the correct one (hint: it's the one that has "Born" in one of the rows), keep that, then show the row that has the birthdate. You need not do more. You could imagine expanding upon this code to, e.g., search all tables associated with a given person to find the one with the word "Born" and then using string manipulation tools to pull the birthdate out...and thus you could create a table of people and birthdates. But one step at a time.
+```{r linewidth=80}
+page <- read_html("https://en.wikipedia.org/wiki/William_Sealy_Gosset")
+df<-page %>% html_nodes("table") %>%  `[[`(2) %>% html_table()
+df[2, ]
+```
+
+---
+
+In Notes 5C, we discuss `httr` and provide a very simple example that did not require an authentification key.
+
+Before completing the questions below, go to [this web site](https://api.data.gov/signup) and sign up to receive an authentification key that will allow you to access `data.gov`. (Be sure to check your spam folder after signing up, if you don't see the email with your key in your inbox.) Note that the key should be treated as a string.
+
+---
+
+## Question 16
+*(5 points)*
+
+*Notes 5C (4-5)*
+
+Use your data.gov key to query the URL below. In your call to the `GET()` function, you would include an argument, `query`, that is a list with two entries: `api_key=[YOUR KEY]`, and `school.name="Carnegie Mellon University"`. Save the output from `GET()`, and confirm that the type of the output is JSON.
+```{r linewidth=80}
+URL = "https://api.data.gov/ed/collegescorecard/v1/schools?"
+
+key = "fBHXtkYTYPOjQCXvPnQf3kUqfD4RPnnys9i9sT49"
+
+if ( require(httr) == FALSE ) {
+  install.packages("httr",repos="https://cloud.r-project.org")
+  library(httr)
+}
+response<-GET(URL, 
+      query= list(api_key = key, school.name = "Carnegie Mellon University"))
+http_type(response)
+```
+
+## Question 17
+*(10 points)*
+
+*Notes 5C (4-5)*
+
+What was CMU's tuition in 2015? Use `fromJSON` (with the default setting: `simplifyVector=TRUE`) to convert your output from `GET()` in Q16 to an `R` object. (Feel free to surround your call to `fromJSON` with `suppressMessages()` so you don't have to see that irritating message about default encoding.) Then use `names()` on the output of `fromJSON` to start honing in on the answer. You'll need to access list/data frame elements, and you may find at some point you have to use `[["2015"]]` to access the year 2015 data frame rather than the more usual `$2015`, which my parser at least does not like. Once you find the tuition, you can extract the number using the usual `[row,col]` format. (Note: to access a list within a list, you can chain things together: to get element `z` of list `y`, which is an element of list `x`, do x\$y\$z or x[["y"]]\$z or x[["y"]][["z"]].) Your final answer should be $50,665. Oh, the good old days.
+```{r linewidth=80}
+if ( require(jsonlite) == FALSE ) {
+  install.packages("jsonlite",repos="https://cloud.r-project.org")
+  library(jsonlite)
+}
+fromJSON(content(response, "text"), simplifyVector = TRUE) %>% suppressMessages() %>% 
+ .$results %>% .[["2015"]] %>% .[["cost"]] %>% .[["tuition"]] %>% .[1, 1]
+```

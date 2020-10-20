@@ -1,0 +1,87 @@
+---
+title: "APIs with httr"
+author: "36-350 -- Statistical Computing"
+date: "Week 5 -- Fall 2020"
+output: 
+  slidy_presentation: 
+    font_adjustment: -1
+---
+
+```{r,echo=FALSE,message=FALSE}
+suppressWarnings(library(tidyverse))
+```
+
+What is an API?
+===
+
+API = Application Programming Interface
+
+In short, it is a part of a server that allows a client to access its data. For instance, Weather Underground has an API that allows users (or more precisely, the computers of users) to access weather data.
+
+There are some `R` packages that are built precisely for particular entities (e.g., `blsAPI` for getting data from the Bureau of Labor Statistics). A more general package is `httr`, which as you might guess is part of the overall tidyverse.
+
+To learn more about APIs, see, e.g., [An Introduction to APIs](https://zapier.com/learn/apis) by Brian Cooksey.
+
+Digression: Vignettes
+===
+
+A [vignette](http://r-pkgs.had.co.nz/vignettes.html) is long-form documentation for an `R` package. 
+
+To access the vignette for `httr` in `RStudio`, one can do the following.
+
+- Go to the Packages pane, click the button for `httr` (if it is not already loaded), and click on the word `httr` itself.
+- On the Help page that pops up, click on "User guides, package vignettes and other documentation."
+- On the next Help page that pops up, choose your vignette: "Best practices for API packages," "Getting started with httr," or "Managing secrets" (these are all for version 1.4.1 of `httr` on my computer).
+
+In general, if you come across a new package and you are unsure what it does or how to use it, check to see if the package developers included vignettes. To check for PDF manuals, look at, e.g.,
+
+- https://cran.r-project.org/web/packages/[PUT PACKAGE NAME HERE]/index.html
+
+and under "Downloads," you may see a link to a manual. (You'd see any vignettes here too.)
+
+A Very Simple Example
+===
+
+We draw this example from the "Best practices for API packages" vignette. One advantage of this is that you do not need to sign up to receive an authentification key.
+```{r}
+if ( require(httr) == FALSE ) {
+  install.packages("httr",repos="https://cloud.r-project.org")
+  library(httr)
+}
+
+(response = GET("https://api.github.com/repos/hadley/httr"))
+names(response)
+http_type(response)
+```
+The response to a simple `GET` call can be structured in different ways. The most common are `XML` and `JSON`. Some sites allow you to choose, many just send what they send.
+
+A Very Simple Example
+===
+
+To access content, use the `content()` function:
+```{r,eval=FALSE}
+content(response) 
+```
+(The returned information is long, so we don't actually evaluate this code chunk.)
+
+To parse the content, it is recommended to use
+
+- the `jsonlite` package for type `application/json`; and
+- the `xml2` package for type `text/xml`.
+
+```{r}
+if ( require("jsonlite") == FALSE ) {
+  install.packages("jsonlite",repos="https://cloud.r-project.org")
+  library(jsonlite)
+}
+
+fromJSON(content(response,"text"),simplifyVector=FALSE) # converts JSON to R object
+```
+
+Learning More
+===
+
+For more information on how to use `jsonlite`, see the package vignettes and [this paper](https://arxiv.org/abs/1403.2805).
+
+As for `xml2`, see the package vignette and manual, accessible via the CRAN link.
+

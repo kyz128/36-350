@@ -1,0 +1,89 @@
+---
+title: "String Basics"
+author: "36-350 -- Statistical Computing"
+date: "Week 3 -- Fall 2020"
+output: 
+  slidy_presentation: 
+    font_adjustment: -1
+---
+
+What is a String?
+===
+
+A string is a sequence of characters that are bound
+together, where a character is a symbol is a written language.
+
+In `R`, a string is of mode (or class) `character` and is bounded by quotes (either single or double):
+```{r}
+mode("r")
+class('r')
+```
+Two notes:
+
+- `R` helps keep your life complicated via two similar but not identical concepts: `mode` and `class`. Feel free to lose time trying to fully internalize how they differ.
+
+- Double quotes are preferable, because then one can use single quotes as apostrophes in strings.
+
+Formatting Strings
+===
+
+There are special symbols that one uses for tabbing ("\\t") and for 
+forcing line breaks ("\\n"):
+```{r}
+message = "To-do list for 350 students:\n\tHomework\n\tLabs\n\tFinal Project"
+cat(message)
+```
+
+Counting Characters
+===
+
+To count the number of characters in a string, use the function `nchar()`
+(as opposed to `length()`, which counts the number of elements in a vector).
+
+To illustrate the difference, let's define a vector of strings: 
+```{r}
+str.vec = c("I","will","master","R")
+nchar(str.vec)
+length(str.vec)
+```
+
+Useful Functions for Vectors (of Strings)
+===
+
+Potentially useful functions to use with vectors that we have not seen previously include:
+
+```{r}
+head(str.vec,2)       # display/extract the first two elements
+tail(str.vec,2)       #                 the last two elements
+toupper(str.vec)      # change all characters to upper case
+tolower(str.vec)      # change all characters to lower case
+```
+
+Substring Extraction and Replacement
+===
+
+Let's define another string vector:
+```{r}
+candidates = c("Trump","Clinton","Johnson","Stein") 
+```
+If you, for instance, want to extract the first two letters of each name,
+you can use `substr()`:
+```{r}
+substr(candidates,1,2)
+```
+If you want to extract the last two letters, utilize `nchar()`, since the total number of letters in each name is different:
+```{r}
+substr(candidates,nchar(candidates)-1,nchar(candidates))
+```
+
+To replace the last two letters with something else,
+```{r}
+substr(candidates,nchar(candidates)-1,nchar(candidates)) = ":)"
+candidates
+```
+If there is a mismatch between the number of characters to replace (here: 2) and the number of characters in the replacement string (here: 6), `R` will simply truncate. Here, that means only the first two characters in the replacement string are used.
+```{r}
+substr(candidates,nchar(candidates)-1,nchar(candidates)) = ":(:|:)"
+candidates
+```
+

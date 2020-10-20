@@ -1,0 +1,145 @@
+---
+title: "More Handy Functions for Vectors"
+author: "36-350 -- Statistical Computing"
+date: "Week 1 -- Fall 2020"
+output: 
+  slidy_presentation:
+    font_adjustment: -1
+---
+
+Converting an R Object to a (Clean) Vector
+===
+
+A vector, like a list, can have names and attributes:
+```{r}
+x = c(a=1,b=2,c=3)
+attr(x,"Creator") = "Peter Freeman"
+x
+```
+
+If you want to, e.g., strip the names and attributes off, even temporarily, you can use <tt>as.vector()</tt>:
+```{r}
+as.vector(x)
+```
+
+If you have a list, and want to concatenate the contents of each list element into a single vector, do not use <tt>as.vector()</tt>, but rather use <tt>unlist()</tt>:
+```{r}
+x = list(c("a","b"),1:3)
+x
+unlist(x)  # note: casting occurs to make the vector elements a single type!
+```
+
+More Handy Functions for Single Vectors I
+===
+
+You've learned about <tt>sort()</tt>. Here we will show an example of why <tt>order()</tt> is also important. <tt>order()</tt> returns a numeric vector showing vector <i>elements</i> and not vector <i>values</i> (like <tt>sort()</tt> returns):
+```{r}
+x = c(5,3,7,1) # the 4th element is the smallest, then the 2nd element, then the 1st, then the 3rd
+order(x)
+```
+
+Now, let's say you have a pair of vectors of equal length (e.g., two columns in a data frame), and you wish to sort one vector but keep the association between the vectors intact:
+```{r}
+x = c(9,5,7,6) # we have four pairs: 9 with 1, 5 with 2, 7 with 3, 6 with 4
+y = 1:4
+
+sort(x) # the association between vectors is broken
+sort(y)
+
+o = order(x)
+x[o]    # the association between vectors remains intact 
+y[o]
+```
+
+In short: <tt>sort()</tt> is useful when sorting one vector, and <tt>order()</tt> is useful for sorting an associated group of vectors based on the entries in one of vectors.
+
+More Handy Functions for Single Vectors II
+===
+
+Let's say you have a vector that has many repeated values (e.g., the index of a datum's leaf in a classification tree). To determine the set of unique values, use the <tt>unique()</tt> function:
+```{r}
+set.seed(999)
+x = sample(c(3,6,12,44),100,replace=TRUE) # assume we don't actually know the input values
+unique(x)
+```
+As you can see, the values are sorted according to when they first appeared in the vector (6 appeared first, etc.). So sometimes it is useful to redirect the output from <tt>unique()</tt> to the <tt>sort()</tt> function:
+```{r}
+sort(unique(x))
+```
+
+More Handy Functions for Single Vectors III
+===
+
+If you not only want to see what the unique values are, but how many times each occurred, use a <tt>table()</tt>:
+```{r}
+table(x) # this will actually sort the values for you, unlike unique
+```
+
+To follow up on a topic from last week: the output of <tt>table()</tt> is of class <tt>table</tt>, which creates a structure that includes the data frequencies, uses the data values as names, and carries around attributes (e.g., <tt>dim</tt>, the number of data values). As a reminder, if you just want the frequencies...
+```{r}
+as.vector(table(x))
+```
+
+More Handy Functions for Single Vectors IV
+===
+
+Perhaps you wish to bin the values in a vector. You can do this with a combination of <tt>table()</tt> and the function <tt>findInterval()</tt>. For the latter, you pass in a vector of bin boundaries and a data vector and what comes out is a vector of bin numbers. For instance:
+```{r}
+x = 1:10
+findInterval(x,c(3,7)) # [1,3) -> bin 0, [3,7) -> bin 1, [7,10] -> bin 2
+```
+
+As stated, it can be useful to summarize this output in a table. For instance, if we sample 10,000 data from a standard normal, we expect about 68.27% of the values to lie between -1 and 1. (If this is not obvious, review your 225 notes!) 
+```{r}
+set.seed(666)
+x = rnorm(10000)
+table(findInterval(x,c(-1,1)))
+```
+Pretty good!
+
+More Handy Functions for Two Vectors I
+===
+
+Let's define two vectors:
+```{r}
+u = c(1:5,5,5)
+v = 3:7
+```
+
+First, we can apply set operations to these vectors. For instance, to merge the vectors:
+```{r}
+union(u,v) # NOTE: this only shows the *unique* values in the union...the 5 is not replicated!
+```
+
+And if there is a union, there must be an intersect(ion):
+```{r}
+intersect(u,v) # NOTE: as above, only the *unique* values are shown
+```
+
+What values are in the vector <tt>u</tt> that are <i>not</i> in the vector <tt>v</tt>?
+```{r}
+setdiff(u,v) # asymmetric: setdiff(v,u) gives different answer!
+```
+
+Do the vectors contain the same values (regardless of the number of times values are replicated)?
+```{r}
+setequal(u,v)
+setequal(u[-(1:2)],v[1:3])
+```
+
+More Handy Functions for Two Vectors II
+===
+
+There are two principal ways to determine if elements of one vector are contained in another.
+
+- <tt>is.element(u,v)</tt>: this returns a logical vector. The i<sup>th</sup> element of this vector is <tt>TRUE</tt> if <tt>u[i]</tt> is an element of <tt>v</tt>, and <tt>FALSE</tt> otherwise.
+```{r}
+is.element(u,v) # the binary operator %in% is equivalent: u %in% v
+```
+
+- <tt>match(u,v)</tt>: this returns a numeric vector. The i<sup>th</sup> element of this vector is <tt>NA</tt> by default if <tt>u[i]</tt> is <i>not</i> an element of <tt>v</tt>. Otherwise, it is the index of the element of <tt>v</tt> that provides the first match to <tt>u[i]</tt>.
+```{r}
+u
+v
+match(u,v)
+```
