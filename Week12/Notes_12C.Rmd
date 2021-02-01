@@ -1,0 +1,115 @@
+---
+title: "PostgreSQL: Data I/O"
+author: "36-350 -- Statistical Computing"
+date: "Week 12 -- Fall 2020"
+output: 
+  slidy_presentation: 
+    font_adjustment: -1
+---
+
+Copying a Table Into SQL
+===
+
+If you have a text file whose columns you wish to input into `postgres`, you would use `copy`:
+```
+copy <SQL table name>
+  from '<name of file on disk>'
+  with ( format <format>,... );
+```
+We will show various examples on the next few slides. However, two points:
+
+- Your `postgres` installation may complain when you try to use `copy`. The alternative is `\copy`, with the same arguments/clauses, but no hard returns (you have to specify everything on one line before hitting return, with no `;` needed).
+- You need to set up an empty table in your `postgres` session first!
+
+Copying a Table Into SQL
+===
+
+Important arguments in the `copy` command include
+
+- `format <format>`, where `<format>` can be `csv`, `text`, or `binary`
+- `header`, which just by itself indicates that there is a header to be skipped over
+- `delimiter '<character>'`, which allows you to specify how the fields in the input file are separated (default comma for `csv` and tab for `text`).
+
+Copy: Example I
+===
+
+Earlier in this course, we learned how to input files like `emline.csv`. Here we will input its contents into a `postgres` session. We assume that you have used `\cd` to change the working directory to where the data file resides.
+
+On this slide, we assume that every column of the input file corresponds to a column in the table, with the first columns matching, then the second columns, etc.
+
+```
+create table emline (
+  O_II_3729 numeric, H_gamma numeric, H_beta numeric,
+  O_III_4959 numeric, O_III_5007 numeric, N_II_6548 numeric,
+  H_alpha numeric, N_II_6584 numeric, S_II_6717 numeric,
+  S_II_6731 numeric, mass numeric, sfr numeric
+);
+
+\copy emline from 'emline.csv' with (format csv,header);
+
+select mass from emline limit 3;
+  mass  
+--------
+ 9.9484
+ 9.9976
+ 9.8058
+(3 rows)
+```
+
+Note: to save a table to a csv file, simply change `from` to `to`.
+```
+\copy emline (mass,sfr) to 'tmp.csv' with (format csv,header);
+```
+
+Copy: Example II
+===
+
+If you have *more columns in your postgres table than are in the csv file*, you would amend your `copy` command so as to tell `postgres` where to put the input data.
+
+Here I define the same table as on the last slide, except that I add a column called `foo`:
+```
+create table emline (
+  O_II_3729 numeric, H_gamma numeric, H_beta numeric,
+  foo varchar(10),
+  O_III_4959 numeric, O_III_5007 numeric, N_II_6548 numeric,
+  H_alpha numeric, N_II_6584 numeric, S_II_6717 numeric,
+  S_II_6731 numeric, mass numeric, sfr numeric
+);
+
+\copy emline (O_II_3729, H_gamma, H_beta, O_III_4959, O_III_5007, 
+N_II_6548, H_alpha, N_II_6584, S_II_6717, S_II_6731, mass, sfr) 
+from 'emline.csv' with (format csv,header);
+
+select * from emline limit 1;
+ o_ii_3729 | h_gamma | h_beta | foo | o_iii_4959 | o_iii_5007 | n_ii_6548 | ...
+-----------+---------+--------+-----+------------+------------+-----------+ ...
+    1.5364 |  1.7004 | 0.3709 |     |    -0.0549 |     0.6216 |    0.4846 | ...
+(1 row)
+```
+Note that `foo` is skipped over and a default value (here, nothing) is inserted. (Note that hard returns were introduced into the `\copy` command above for readability, but in actuality the entire command should be on one line.)
+
+Copy: Example III
+===
+
+If you have *fewer columns in your postgres table than are in the csv file*, you would create a temporary table that takes in the entire csv file, then you would select columns from that table.
+
+Assume, for instance, that the `emline` table(s) on the last two slides are examples of such temporary tables. You've read data into `emline`, but you really just want a table with `mass` and `sfr` as columns...what now?
+```
+create table emline_reduced (
+  mass numeric, sfr numeric
+);
+
+insert into emline_reduced (mass,sfr)
+  select mass,sfr
+  from emline;
+
+select * from emline_reduced limit 1;
+  mass  |  sfr  
+--------+-------
+ 9.9484 | -9999
+(1 row)
+
+drop table emline;
+```
+Not necessarily efficient, but it gets the job done. We note that we used another variant of `insert` here that utilized `select` so that we would not have to insert thousands of rows by hand. You'll see more examples of this type of insertion next week.
+

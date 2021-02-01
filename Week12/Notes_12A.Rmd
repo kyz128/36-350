@@ -1,0 +1,180 @@
+---
+title: "Relational Databases and Postgres"
+author: "36-350 -- Statistical Computing"
+date: "Week 12 -- Fall 2020"
+output: 
+  slidy_presentation: 
+    font_adjustment: -1
+---
+
+Context
+===
+
+- A relational database (or RDB) is a structure for organizing information that one may think of initially as a supercharged version of a data frame. (The word "relational" does not actually indicate that relationships can exist between separate units in your database. It actually has to do with the concept of <i>relational algebra</i>, first proposed [in this paper by E. F. Codd](http://www.seas.upenn.edu/~zives/03f/cis550/codd.pdf).)
+
+- In an RDB, the basic unit of data storage is the *table* (or *relation* or *schema*). Rows are rows, but sometimes dubbed *tuples* or *records*, and columns are sometimes dubbed *attributes*. (*Fields* are specific cells within a given row.)
+
+- RDBs come with performance guarantees, dubbed [ACID](http://www.orafaq.com/wiki/ACID).
+
+- When designing an RDB, a key goal is to eliminate redundancy by having many tables that are linked via <i>foreign keys</i>. For instance, if you want to construct an RDB having information about movies, actors, and studios (where, e.g., a movie is produced by a studio and stars an actor), it makes the most sense to split the information cleanly between interlinked tables.
+
+- RDBs are commonly manipulated and queried using `SQL`: Structured Query Language.
+
+Postgres
+===
+
+- There are many implementations of `SQL` (SEE-kwule): `Oracle`, `MySQL`, `SQLite`, etc.
+
+- In this class, we will make use of [PostgreSQL](https://www.postgresql.org/), or more simply `Postgres`. It is open source, with Mac, Windows, and Linux versions available. You should download and install it!
+
+- `Postgres` will set up a server on your machine. When you install `Postgres`, a superuser account "postgres" will be set up, with a password specified by you. Make this a good one, i.e., not just "postgres." (That's because hackers like to look for lazily set up postgres accounts.)
+
+- When you start up postgres for the first time (meaning: run the SQL Shell, or `psql`...or by typing `psql -U postgres` in a [Mac] terminal window), you will see something like this:
+
+<center>![](http://www.stat.cmu.edu/~pfreeman/postgres.png){width=500px}</center>
+
+(Note that you can run code within the `pgAdmin 4` program that may have come packaged with your version of `postgres`, but I find the SQL shell to be more straightforward. Also note that the interface may differ for Windows; if you are a Windows user having issues, we will try to direct you to a Windows-using TA who may be able to help.)
+
+- You should hit return to accept the defaults at each prompt, and provide the password at the end to get to the postgres prompt (`postgres=#`).
+
+- If you are the only user on your machine, then it is fine to play around with SQL from within the `postgres` account. More generally, the `postgres` admin would apply the `createuser` command from within `postgres` to carve out space for you to play in.
+
+- A good book to use as a reference for `postgres` is [this one](https://nostarch.com/practicalSQL).
+
+Finding Your Way Around
+===
+
+I'm in! How do I...
+
+- get help? `\h` for general listing, `\h <command>` for specific command (also: Google, as always)
+
+- list the tables I have in my database? `\d`
+
+- read input from a `sql`-format file? `\i <path to + name of file>`
+
+- change directory? `\cd <path to new directory>`
+
+- get the heck out? `\q`
+
+To list all (back)slash commands, type `\?` at the `postgres` prompt. (There are many!)
+
+Tables
+===
+
+Tables are the data frames of `SQL`. But whereas `R` has much more than just data frames, life in `SQL` revolves around tables; as I am wont to say, "Everything in `SQL` is a table." As an example, you cannot print out the value of $\pi$ unless it's in a table:
+```
+select pi();
+        pi        
+------------------
+ 3.14159265358979
+(1 row)
+```
+(Here, the value of $\pi$ is being displayed in a one-row, one-column table, with column name `pi`. Don't worry about the
+`select` part for now; we'll cover that starting next week. Do worry about the semicolon: any command in `postgres` that doesn't 
+start with a backslash needs to end with a semicolon. Leaving the semicolon out is possibly the Number 1 Coding Error of new `SQL` users.)
+
+
+Tables
+===
+
+We note the following about tables:
+
+- **each table in a database represents a single entity**;
+
+- each row of a table represents **one instance** of that entity;
+
+- each column of a table must have a **name**;
+
+- each column of a table must have a **pre-specified data type**; and
+
+- the columns in each row must satisfy any **constraints** specified with the table is created.
+
+Data Types
+===
+
+Unlike `R`, there are *many* defined data types in `SQL`. For documentation on those defined within `postgres`, see [the postgres data type documentation page](https://www.postgresql.org/docs/10/static/datatype.html).
+
+For our purposes, there are three categories of data types that you will utilize the most:
+
+- characters;
+- numbers; and
+- dates/times.
+
+We will look at each category over the next few slides. 
+
+Note that in addition to these there is a `boolean` type, which can take on the values `true` (or `yes` or `on` or `1`), `false` (or `no` or `off` or `0`), and `unknown`.
+
+Data Types: Characters
+===
+
+There are three data types used for handling strings:
+
+- `char(n)`: fixed-length strings with $n$ characters, padded with blank spaces if necessary;
+- `varchar(n)`: variable-length strings that can have *at most* $n$ characters, with no blank-space padding; and
+- `text`: variable-length strings of arbitrary length, with no blank-space padding.
+
+One would generally use `char(n)` only when the length of the strings is known and constant (as would be the case for, e.g., state postal code abbreviations like `PA`). Otherwise, `varchar(n)` is preferred over `text` just because it effectively puts a cap on the amount of memory taken up by a table.
+
+Data Types: Integers
+===
+
+`SQL` provides a wide variety of data types for representing integers and both fixed-point and floating-point numbers.
+
+For integers:
+
+| Data Type | Storage Size | Range |
+| --------- | ------------ | ----- |
+| `smallint`  | 2 bytes | $-2^{15}$ to $2^{15}-1$ |
+| `integer`   | 4 bytes | $-2^{31}$ to $2^{31}-1$ |
+| `bigint`    | 8 bytes | $-2^{63}$ to $2^{63}-1$ |
+
+While most programmers will default to `integer`, for most purposes `smallint` is appropriate and will reduce memory use.
+
+There is also a special category of "auto-incrementing" integers with types `smallserial`, `serial`, and `bigserial`. These are purely positive variations on the integer types listed above, and are used to, e.g., provide unique labels for each row of a table (i.e., "keys"). We will see how `serial` is used later when we insert data into tables.
+
+Data Types: Fixed- and Floating-Point Numbers
+===
+
+The difference between fixed- and floating-point numbers is in how the computer stores them in memory, and is a topic beyond the scope of this class. Simply note that arithmetic with floating-point numbers can yield inexact results, but in the vast majority of cases the slight inexactness has no bearing on data analysis and interpretation. (In `R`, `numeric` is a floating-point data type.)
+
+For fixed-point numbers, we have
+
+- `numeric(precision,scale)`: the number contains at most `precision` digits overall, with `scale` digits to the right of the decimal point. For instance, `147.89` is an example of a number that can be stored as data type `numeric(5,2)`. (Note that `decimal` is an alternative name for `numeric`.) The `numeric` data type is useful when we know that a particular number will not have more than a particular number of digits (e.g., rainfall in a 24-hour period requires at most two digits to the left of the decimal point) and when we want to round off to, say, the hundredths place.
+
+Note that there is a `money` type within `SQL` which is akin to `numeric` but fixes the number of digits to two to the right of the decimal point (and allows for symbols like `$` to be included with the numbers).
+
+For floating-point numbers, we have
+
+- `real`: the number is stored in 4 bytes and is precise to 6 decimal places; and
+- `double precision`: the number is stored in 8 bytes and is precise to 15 decimal places.
+
+Data Types: Dates and Times
+===
+
+The common data types for dates and times include:
+
+- `date`: specified as `YYYY-MM-DD`;
+- `time`: specified as `HH:MM:SS`;
+- `timestamp`: combines `date` and `time`;
+- `interval`: a time interval, defined in `days`, `months`, `years`, etc.
+
+A variant of `time` (and `timestamp`) is `time with time zone` (and `timestamp with time zone` or `timestamptz`). You can specify, for instance, `02:00 EST` or `04:00 -8` (offset from zero in Coordinated Universal Time or UTC) or `06:00 New York City`. What is stored, however, is the local time for *your* time zone, with the UTC offset:
+```
+create table tmz (
+  t timestamp with time zone
+);
+
+insert into tmz
+  values
+  ('2020-05-29 02:00 EST'),('2020-05-29 02:00 -8');
+
+select * from tmz;
+           t            
+------------------------
+ 2020-05-29 03:00:00-04
+ 2020-05-29 06:00:00-04
+(2 rows)
+```
+
+
+

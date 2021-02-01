@@ -1,0 +1,145 @@
+---
+title: "More on Database Querying via SELECT"
+author: "36-350 -- Statistical Computing"
+date: "Week 14 -- Fall 2020"
+output: 
+  slidy_presentation: 
+    font_adjustment: -1
+---
+
+Select: Querying a Database
+===
+
+A shortened definition that highlights elements of the syntax that are important in the context of this class is:
+```
+select
+  [*]
+  [<expression>]
+  [from <expression>]
+  [where <condition>]
+  [group by <expression>]
+  [having <condition>]
+  [order by <expression>];
+```
+
+Last week, we focused on the modifiers `from` and `where`. In these notes we will focus on the final three modifiers. We'll look at examples using the following table:
+```
+create table foo (
+  id serial primary key, 
+  letter text, 
+  x real
+);
+
+insert into foo 
+  (select generate_series(1,20) as id,
+          ('{X,Y,Z}'::text[])[ceil(random()*3)] as letter,
+          random()*1000.0 as x);
+```
+
+Select: Group By
+===
+
+The `group by` modifier allows one to apply, e.g., functions to groups of rows. It only makes sense to apply this modifier if one of the columns is akin to a factor variable, with a finite number of entries (such as `letter` is in our example).
+
+If one wants to determine the minimum value of `x` in the table `foo`, one does
+```
+select min(x) from foo;
+   min   
+---------
+ 3.28422
+```
+
+However, if one wants to determine the minimum value of `x` associated with each unique `letter`, one does
+```
+select letter,min(x) from foo
+  group by letter;
+ letter |   min   
+--------+---------
+ Y      | 3.28422
+ X      | 54.3229
+ Z      | 537.977
+(3 rows)
+
+```
+
+Note that one can use an ordinal number (as in `group by 1`, meaning group by the first column of the selected table). Also note that the output above is not ordered by either column (the output is in essentially random order)...that's what `order by` is for.
+
+Select: Order By
+===
+
+Let's amend our selection on the last slide so as to have the output ordered by the value of `min(x)`:
+```
+select letter,min(x) from foo
+  group by letter
+  order by min(x) asc;
+ letter |   min   
+--------+---------
+ Y      | 3.28422
+ X      | 54.3229
+ Z      | 537.977
+(3 rows)
+```
+
+The `asc` means "ascending," which is the default, which is contrasted with `desc` for "descending." One can specify multiple orderings, as in this (actually useless) example:
+```
+select letter,min(x) from foo
+  group by letter
+  order by min(x) desc,letter asc;
+   letter |   min   
+--------+---------
+ Z      | 537.977
+ X      | 54.3229
+ Y      | 3.28422
+(3 rows)
+```
+Ordering is done on the basis of the first listed column (`min(x)`), but if there is a tie, then the tie is broken by the second listed column (`letter`).
+
+Select: Having
+===
+
+The `having` modifier filters the new rows created via `group by`, i.e., group, apply function, then filter:
+```
+select letter,min(x) from foo
+  group by letter
+  having min(x) > 300;
+ letter |   min   
+--------+---------
+ Z      | 537.977
+(1 row)  
+```
+
+The use of `having` can be constrasted against the use of `where`, which filters individual rows before grouping is done, i.e., filter, group, then apply function:
+```
+select letter,min(x) from foo
+  where x > 500
+  group by letter;
+ letter |   min   
+--------+---------
+ Y      | 745.832
+ X      | 599.662
+ Z      | 537.977
+(3 rows)
+```
+
+Of course, if one wants to be really fancy, one can combine `where` and `having`: apply one filter, group, apply function, then apply a second filter.
+
+Select: Window Function
+===
+
+The last concept we will touch upon is that of the "window function," which performs a calculation across a set of related table rows. We will specifically look at the `over ( partition by ... ) ` construct:
+```
+select letter,min(x) over (partition by letter) from foo;
+ letter |   min   
+--------+---------
+ X      | 54.3229
+ X      | 54.3229
+ ...    |     ...
+ Y      | 3.28422
+ Y      | 3.28422
+ ...    |     ...
+ Z      | 537.977
+ Z      | 537.977
+ ...    |     ...
+(20 rows)
+```
+Note that the `over` modifier modifies `min(x)` specifically, i.e., think of `min(x) ovar (partition by letter)` as a single parsable statement. You can immediately see the difference in output between the above and what is towards the bottom of the third slide: here, all rows are output, whereas before any repeated rows were removed. A good example of when you might want to use `over ( partition by ... )` is if you are trying to produce a list of basketball players, their positions, their points per game, and the average number of points per game scored by all players at that position...you would get the last quantity after partitioning by position.

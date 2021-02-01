@@ -1,0 +1,200 @@
+---
+title: "Postgres: Arrays, Math, and (Basic) Statistics"
+author: "36-350 -- Statistical Computing"
+date: "Week 14 -- Fall 2020"
+output: 
+  slidy_presentation: 
+    font_adjustment: -1
+---
+
+Arrays
+===
+
+To define an array, you need to place it into a table:
+```
+create table tmp (
+  a numeric[]
+);
+
+insert into tmp values 
+  (array[0.25,0.5,0.75]);
+
+select * from tmp;
+        a        
+-----------------
+ {0.25,0.5,0.75}
+(1 row)
+```
+Here, `[]` means that the array may take on different lengths from row to row. If you want all the arrays to have the same length, you *can* specify that length (e.g., a numeric[2]); but *postgres currently ignores your specified limit*! So there's no need to provide a number.
+
+To determine the length of each array stored in a given column, use `cardinality()`:
+```
+select cardinality(a) from tmp;
+ cardinality 
+-------------
+           3
+```
+
+You can specify a two-dimensional array using `[][]`. Any given array can be defined on a row-by-row basis like so:
+```
+insert into bar values (array[[1,2],[3,4]]);
+```
+If you have a multi-dimensional array, `array_dims()` will provide the dimensionality of all of the arrays in your column.
+
+Basic Math Operations
+===
+
+| Operator | Description |
+| :-------- | :----------- |
+| + | Addition |
+| - | Subtraction |
+| * | Multiplication |
+| / | Division (no remainder) |
+| % | Modulo (remainder) |
+| ^ | Exponentiation |
+| \|/ | Square Root |
+| \|\|/ | Cube Root |
+| ! | Factorial |
+
+In binary operations (ones in which there is an operator between two numbers):
+
+- if both numbers are integers, the output is an integer
+- if one or both of the numbers is numeric, the output is numeric
+- if one or both of the numbers is a floating-point number (e.g., of type real), the output is a floating-point number of type double precision
+
+```
+select 2+2 as four;
+ four 
+------
+    4
+(1 row)
+
+select 10^mass from emline_reduced limit 1;
+      ?column?      
+--------------------
+ 8879734893.2576664
+(1 row)
+
+select 10^mass/10^sfr from emline_reduced where sfr <> -9999 limit 1;
+            ?column?            
+--------------------------------
+   33939074877.4429298845295976
+(1 row)
+```
+Conversion to scientific notation can be done but will not be shown here.
+
+Math Functions
+===
+
+In addition to mathematical operations, `postgres` includes the mathematical functions that you would expect it to, such as `sin()`, etc. A few things to note:
+
+- `ln()` returns the natural log, while `log()` returns the log for a specified base (default base 10)
+- the inputs to the trignometric functions are in radians; to convert from degrees to radians and vice-versa, use `radians()` and `degrees()`
+- `random()`, which you are familiar with, selects a random number between 0 and 1
+
+Aggregate Functions
+===
+
+You have seen many of these already:
+
+| Function | Returns |
+|:---------|:--------|
+| `count()` | the number of data fulfilling a condition |
+| `max()`   | the maximum value of all data fulfilling a condition |
+| `min()`   | the minimum value of all data fulfilling a condition |
+| `avg()`   | the average value of all data fulfilling a condition |
+| `sum()`   | the sum of all data fulfilling a condition |
+
+```
+select round(avg(sfr),3) from emline_reduced where sfr <> -9999;
+ round  
+--------
+ -0.714
+(1 row)
+```
+Note that we implement `round()` to round off our floating-point output to the stated number of decimal places.
+
+Median and Quantiles
+===
+
+There is no `median()` function in `postgres`. Instead, we apply the more general functions `percentile_cont()` (for continuously valued data) or `percentile_disc()` (for discretely valued data).
+```
+select
+  percentile_cont(0.5)
+  within group (order by mass)
+  from emline_reduced;
+ percentile_cont 
+-----------------
+           9.812
+(1 row)
+```
+
+You can specify an array as input to these functions to get quantiles. (Note the use of `unnest()` to get the data into the format that may be output to the screen.)
+```
+select 
+  unnest(
+    percentile_cont(array[0.25,0.50,0.75])
+    within group (order by mass)
+  ) 
+  from emline_reduced;
+ unnest 
+--------
+  9.714
+  9.812
+ 9.8578
+(3 rows)
+```
+
+(Basic) Statistics
+===
+
+You would never want to do advanced statistical work in `postgres`. (Nor can you, really, at least with the functions defined within it.) Once you have your data pre-processed in the way that you want them, you would presumably copy the table you have created to a csv file that you would then open with `R` (or `Python`).
+
+(Try to imagine random forest implemented in `postgres`. It is not a pretty thing to imagine.)
+
+This all said, you can at least get some limited information about data in a column:
+
+| Function | Returns |
+|:---------|:--------|
+| `stddev()` | sample standard deviation |
+| `variance()` | sample variance |
+
+And you can see if there are linear dependencies between columns of data:
+
+| Function | Returns |
+|:---------|:--------|
+| `corr()`  | correlation coefficient between data in two columns |
+| `covar_samp()` | sample covariance between data in two columns |
+| `regr_r2()` | $R^2$ for linear regression model |
+| `regr_slope()` | slope for linear regression model |
+| `regr_intercept()` | intercept for linear regression model |
+
+For the `regr_*` functions, it is assumed that you are regressing the first named column, as the response, onto the second named column, which is the predictor.
+```
+select regr_slope(sfr,mass) from emline_reduced where sfr <> -9999;
+    regr_slope     
+-------------------
+ -1.20562571657942
+(1 row)
+```
+For every unit change in the `mass` variable, the `sfr` variable decreases by -1.206.
+
+Ranking
+===
+
+The `rank()` function in `postgres` is a window function: it performs calculations across sets of rows, but unlike an aggregate function, it presents output for each of the rows. This one is best understood via example:
+```
+select                                                               
+  mass, sfr, rank() over (order by mass desc)
+  from emline_reduced
+  where sfr <> -9999;
+  mass  |   sfr   | rank 
+--------+---------+------
+ 9.8578 | -0.5099 |    1
+  9.812 | -1.1993 |    2
+ 9.8058 | -0.7249 |    3
+  9.714 | -0.6436 |    4
+ 9.6657 | -0.4929 |    5
+(5 rows)
+```
+The difference between `rank()` and `dense_rank()` is in how they handle ties. The former skips rankings after a tie (e.g., 1, 1, 3, 3, 5, 6, 7, ...) while the latter does not (e.g., 1, 1, 2, 2, 3, 4, 5).

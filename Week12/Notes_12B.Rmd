@@ -1,0 +1,186 @@
+---
+title: "Working With CRUD: Creating and Populating Tables"
+author: "36-350 -- Statistical Computing"
+date: "Week 12 -- Fall 2020"
+output: 
+  slidy_presentation: 
+    font_adjustment: -1
+---
+
+But I Don't Like CRUD
+===
+
+No, no. CRUD is an acronym that stands for four basic table operations:
+
+- <b>C</b>reate (meaning for us: `create` and `insert`)
+
+- <b>R</b>ead (meaning `select`)
+
+- <b>U</b>pdate (meaning `update table` and `alter table`)
+
+- <b>D</b>elete (meaning `delete from` and `drop table`)
+
+We will discuss the C, the U, and the D in this notes set, and the R next week...
+
+Creating a Table
+===
+
+Assuming you do not read in a table from a previously existing file via use of `\i`, you'll need to create and populate a table yourself.
+
+The command is
+```
+create table <name> 
+(<column 1> <type 1> <constraint 1>, ... , <multi-column constraint(s)>);
+```
+
+Here is a simple example. Refer to the previous set of notes for documentation about the data types:
+```
+create table products (
+  product_id serial,
+  label text,
+  price money,
+  discount money,
+  inventory integer
+);
+```
+This creates a five-column table that contains a label for each product, its price, any current discount on that price, and the current number of each product available.
+
+Note that the `product_id` column contains data of type `serial`. This, as was stated in the last set of notes, is a data type that represents an auto-incrementing integer. Thus, when we first insert a row into this table, `product_id` will take on the value `1`, then when we insert the next row it will take on the value `2`, etc., etc. This provides a unique identifier for each row. Instead of just
+```
+product_id serial,
+```
+we could specify this as
+```
+product_id serial primary key,
+```
+to make it clear that this column has the unique identifier for each product in the table. As we will see later, this key can be linked to from other tables as a so-called "foreign key" (since it is defined outside of those other tables...hence it is "foreign" to them).
+
+Adding Constraints
+===
+
+When creating a `SQL` table, we may want to add constraints. For instance, a product's price should not be less than $0, and each product should be labeled in a unique manner. Here, we recreate the table defined on the previous page. 
+```
+create table products_with_constraints (
+  product_id serial primary key,
+  label text unique not null check (char_length(label) > 0),
+  price money check (price >= 0::money),
+  discount money default 0.0 check (discount >= 0::money),
+  inventory integer default 0 check (inventory >= 0),
+  check (price > discount)
+);
+```
+
+There are many things to note here:
+
+1. There is a `unique` specifier that ensures that every inserted value is unique.
+2. There is a `not null` specifier that indicates you *have* to insert a value for this variable when inserting a new row into the table.
+3. There is a `check` specifier:
+```
+check (<relationship>)
+```
+4. There is a `default` specifier that is implemented when you do *not* insert a value.
+5. `::` is used for casting values into types (e.g., `0::money` casts the integer 0 to be of type `money`).
+6. You can specify checks of one column's values versus anothers (e.g., the price should be larger than the discount).
+
+Inserting Values
+===
+
+There are a few ways to insert data into a `SQL` table. We'll show how to do it row-by-row here, and then utilize `select` to create bigger tables next week.
+
+To populate the table one row at a time:
+```
+insert into <name> (<column i>,<column j>,...) values
+  (<value i>,<value j>,...),
+  ...
+  (<value i>,<value j>,...);
+```
+If you leave out a column, then the data there will be missing (and can be added later with `update table`) or will have a default value. Note that any column with data type `serial` has default behavior: it will auto-increment).
+```
+insert into products_with_constraints (label,price,discount,inventory) values
+  ('kirk action figure',50,10,13),
+  ('spock action figure',40,5,22);
+```
+The `product_id`, being of type `serial`, will take on the values 1, then 2.
+
+
+If you leave out the `(\<column i\>,\<column j\>,...)` part, then `postgres` will simply assume that you will be entering values for all columns (in order...so the first value will go into the first column, etc.). For instance:
+```
+insert into products_with_constraints values
+  (3,'uhura action figure',150,30,3),
+  (4,'khan action figure',80,5,12);
+```
+
+To look at all columns in your table, do
+```
+select * from products_with_constraints;
+ product_id |        label        |  price  | discount | inventory 
+------------+---------------------+---------+----------+-----------
+          1 | kirk action figure  |  $50.00 |   $10.00 |        13
+          2 | spock action figure |  $40.00 |    $5.00 |        22
+          3 | uhura action figure | $150.00 |   $30.00 |         3
+          4 | khan action figure  |  $80.00 |    $5.00 |        12
+(4 rows)
+```
+
+Updating Table Values
+===
+
+The `update` command allows us to modify values in table cells.
+```
+update <name>
+   set <column1> = <new value 1>,
+   set <column2> = <new value 2>,
+   ...
+   where <row condition>;
+```
+
+Think of the `where <row condition>` as being like a call to the `which()` function in `R`: in it, you set a range of values for one of the table columns, and thereby select which rows to update.
+```
+update products_with_constraints
+  set discount = 10::money
+  where price >= 70::money;
+```
+
+(Note that when you look at an updated table, the serial data *may not* be displayed in numeric order, i.e., the rows may be rearranged. This is OK.)
+
+Making Large-Scale Alterations to a Table
+===
+
+If you wish to add or delete an entire column, or rename an column, or change constraints, etc., you would "update" your table using `alter table`:
+```
+alter table <name>
+  <action>;
+```
+There are too many possible to provide a clean shorthand for them all. Best just to give a few examples:
+```
+alter table products_with_constraints
+  add column rating real check (rating >= 0.0) check (rating <= 5.0);
+  
+alter table products_with_constraints
+  alter column rating set default 4.0;
+  
+alter table products_with_constraints
+  rename column label to type;
+  
+alter table products_with_constraints
+  drop column inventory;
+```
+
+Etc.
+
+Deleting Rows and Removing a Table Entirely
+===
+
+To remove one or more entries from a table:
+```
+delete from <name>
+  where <condition>;
+```
+(Be careful! If you leave out the `where` clause, then <b>all</b> entries are deleted.)
+
+To remove a table in its entirety:
+```
+drop table <name>;
+```
+
+To check that the table is removed, look for it in the listing produced by issuing the `\d` command.

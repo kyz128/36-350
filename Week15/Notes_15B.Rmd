@@ -1,0 +1,129 @@
+---
+title: "JOINing Two Tables"
+author: "36-350 -- Statistical Computing"
+date: "Week 14 -- Fall 2020"
+output: 
+  slidy_presentation: 
+    font_adjustment: -1
+---
+
+Foreign Keys
+===
+
+A foreign key is a (collection of) column(s) in one table that <i>uniquely</i> specifies a row in another table. We specify foreign keys using the `references` keyword when we define a column or table. Though it is not required to do so, it is most common for a foreign key to reference another table's primary key.
+
+Assume you have the following table:
+```
+create table countries ( 
+  country_code char(2) primary key, 
+  country_name text unique 
+);
+```
+populated with
+```
+insert into countries values 
+  ('us','United States'), ('mx','Mexico');
+```
+
+We can then define another table, `cities`, that contains a foreign key referencing `country_code`:
+```
+create table cities (
+  name text not null,
+  postal_code varchar(9) check (postal_code <> '') primary key,
+  country_code char(2) check (country_code <> ''),
+  foreign key (country_code) references countries 
+);
+insert into cities values 
+  ('Pittsburgh','15213','us');
+insert into cities values 
+  ('Toronto','M4C185','ca');
+```
+The first insert will work, because the table countries contains the code `us`, while the second insert will fail (at least until information on Canada is inserted into `countries`).
+
+Joining Two Tables
+===
+
+The purpose of a `join` is to allow a single `select` command to access information in two tables. There are many flavors of joins: inner joins, left joins, full outer joins, set differences, etc.
+
+<center>![](http://www.stat.cmu.edu/~pfreeman/joins.png){width=900px}</center>
+
+This just shows some of the possibilities. A query for set differences, for instance, might return all rows of Table A that are *not* in Table B.
+
+Joining Two Tables
+===
+
+We'll begin by demonstrating an *inner* join, which produces rows for which the columns in **both** tables match. (This is akin to performing a `select` on the *intersection* of two tables.)
+```
+create table A (id serial primary key, name text);
+insert into A (name) values ('Freeman'),('Greenhouse');
+create table B (id serial primary key, name text);
+insert into B (name) values ('Tibshirani'),('Nugent'),('Freeman');
+select * from A join B on A.name = B.name;
+ id |  name   | id |  name   
+----+---------+----+---------
+  1 | Freeman |  3 | Freeman
+(1 row)
+```
+
+Instead of displaying all columns, you can as a subset, and rename them with `as`:
+```
+select A.name as name_a, B.name as name_b from A join B on A.name = B.name;
+ name_a  | name_b  
+---------+---------
+ Freeman | Freeman
+(1 row)
+```
+
+Joining Two Tables
+===
+
+A *full outer join* produces rows for all columns in **both** tables. This is akin to performing a `select` on the *union* of the two tables.
+
+```
+select A.name as name_a,B.name as name_b from A full outer join B on A.name = B.name;
+   name_a   |   name_b   
+------------+------------
+ Freeman    | Freeman
+ Greenhouse | 
+            | Nugent
+            | Tibshirani
+(4 rows)
+```
+
+A *left outer join* produces all rows for the first table (here: A), and any matching rows for the second table (here: B).
+
+```
+select * from A left outer join B on A.name = B.name;
+ id |    name    | id |  name   
+----+------------+----+---------
+  1 | Freeman    |  3 | Freeman
+  2 | Greenhouse |    | 
+(2 rows)
+```
+
+(Yes, there indeed is a `right outer join` too.)
+
+Joining Two Tables
+===
+
+To select the set difference, e.g., all rows of A that are <b>not</b> in B, use a left or right outer join along with judicious `where` clause:
+
+```
+select * from A left outer join B on A.name = B.name where B.id is null;
+ id |    name    | id | name 
+----+------------+----+------
+  2 | Greenhouse |    | 
+(1 row)
+```
+
+To select the symmetric difference, i.e., all rows of A not in B and vice-versa, use a full outer join along with a longer but still judicious `where` clause:
+
+```
+select * from A full outer join B on A.name = B.name where B.id is null or A.id is null;
+ id |    name    | id |    name    
+----+------------+----+------------
+  2 | Greenhouse |    | 
+    |            |  2 | Nugent
+    |            |  1 | Tibshirani
+(3 rows)
+```

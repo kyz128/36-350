@@ -63,7 +63,7 @@ if ( require("devtools") == FALSE ) {
   install.packages("devtools",repos="https://cloud.r-project.org")
   library(devtools)
 }
-#source_url("Enter the URL to dark_and_stormy.R here")
+source_url("https://raw.githubusercontent.com/kyz128/36-350/main/dark_and_stormy.R")
 ```
 
 ## Question 3
@@ -73,8 +73,8 @@ if ( require("devtools") == FALSE ) {
 
 Following the instructions in `Notes_8A`, create a new branch both on `GitHub` and in your local project. Call it `new_branch`. Once you have done this, alter `dark_and_stormy.R` so that it prints "It was a dark and stormy night; the rain fell in torrents." Stage, commit, and push as you would have done in Q2. Source the `main` branch file as you did in Q2, and also source the `new_branch` file. If the output of the first does not include "the rain fell in torrents," while the output of the second one does include that phrase, you're good.
 ```{r linewidth=80}
-#source_url("Enter the URL to the main branch version of dark_and_stormy.R here")
-#source_url("Enter the URL to the new-branch version of dark_and_stormy.R here")
+source_url("https://raw.githubusercontent.com/kyz128/36-350/main/dark_and_stormy.R")
+source_url("https://raw.githubusercontent.com/kyz128/36-350/new_branch/dark_and_stormy.R")
 ```
 
 ## Question 4
@@ -87,7 +87,7 @@ Another way to create a code branch is to "fork" a repository. Two words that yo
 In this exercise, you are going to fork the `36-350-Fork` repository in my (i.e., `pefreeman`'s) account. Point your browser to `https://github.com/pefreeman/36-350-Fork` and click on the `Fork` button at top right. When/if you are prompted as to where you want the forked repository to go, indicate that you want it to go to *your* `GitHub` account. Once you've done that, source via `source_url()` the `check_mark.R` file in the repo. The path to the file should include *your account name*, and not mine! (Note that when you run the code chunk, you may see a "spinning circle," with the ultimate output not shown. This is OK...the file should still knit with the correct output.)
 
 ```{r linewidth=80}
-#source_url("Enter the URL to **your** forked version of check_mark.R here")
+source_url("https://raw.githubusercontent.com/kyz128/36-350-Fork/main/check_mark.R")
 ```
 ---
 
@@ -118,10 +118,15 @@ f = function(x) {
 
 Add an appropriate warning, but don't change what is returned. Call the function is such a way that the warning message is observed. Was the final output from the function what you expected it to be?
 ```{r error=TRUE,linewidth=80}
-# FILL ME IN
+f = function(x) { 
+  if (typeof(x) != "character"){warning("Input not of character type")}
+  toupper(x) 
+}
+f(5)
 ```
 ```
-FILL ME IN (with line breaks for proper PDF output)
+I was actually expecting an error but it seems that R
+implicitly converted the int to a char. 
 ```
 
 ## Question 6
@@ -131,7 +136,11 @@ FILL ME IN (with line breaks for proper PDF output)
 
 Change the warning in Q5 to an error. Call the function is such a way that the error message is observed.
 ```{r error=TRUE,linewidth=80}
-# FILL ME IN
+f = function(x) { 
+  if (typeof(x) != "character"){stop("Input not of character type")}
+  toupper(x) 
+}
+f(5)
 ```
 
 ## Question 7
@@ -141,7 +150,14 @@ Change the warning in Q5 to an error. Call the function is such a way that the e
 
 Keep your code from Q6, but add a message at the beginning saying what the function is supposed to do when called properly. Run the function two times, once with improper input, and a second time with proper input (e.g., "a") but in conjunction with `suppressMessages()`, so the message is not observed.
 ```{r error=TRUE,linewidth=80}
-# FILL ME IN
+f = function(x) {
+  message("Function converts x to uppercase when called properly")
+  if (typeof(x) != "character"){
+    stop("Input not of character type")}
+  toupper(x) 
+}
+f(2)
+suppressMessages(f("a"))
 ```
 
 ---
@@ -163,7 +179,16 @@ f = function(x) {
 
 In the code chunk below, first run the code as it is defined above with a character input. Confirm that an error is generated and that you don't see the word "hello". Then, below that function call, redefine the function `f()` so that it includes a call to `try()` at an appropriate place. Then call your updated function with a character input. If you do not see the word "hello" printed, something has gone wrong.
 ```{r error=TRUE,linewidth=80}
-# FILL ME IN
+f = function(x) { 
+  log(x)
+  print("hello")
+}
+f("a")
+f = function(x) { 
+  try(log(x))
+  print("hello")
+}
+f("a")
 ```
 
 ## Question 9
@@ -173,7 +198,18 @@ In the code chunk below, first run the code as it is defined above with a charac
 
 Alter your function in Q8, replacing the `try()` with `tryCatch()` (and deleting the `print("hello")`). Catch what you feel are the relevant conditions here, and deal with them appropriately (by informing the user what went wrong). (For instance...do you think `log()` issues informative messages? Or not?) Call the function with a character, call it again with a negative number, and call it one last time with 0 as input.
 ```{r error=TRUE,linewidth=80}
-# FILL ME IN
+f = function(x) { 
+  tryCatch({
+    if (x < 0) stop("Negative input; out of natural log's domain")
+    if (x == 0) warning("Input is 0, output should be indeterminate")
+    log(x)},
+    error = function(c) print(c$message),
+    warning = function(c) print(c$message))
+  print("hello")
+}
+f("a")
+f(-5)
+f(0)
 ```
 
 ## Question 10
@@ -184,7 +220,19 @@ Alter your function in Q8, replacing the `try()` with `tryCatch()` (and deleting
 Repeat Q9, but add a `finally` argument to `tryCatch()` that prints (or more elegantly, if you want, cats) the value of $x$. Repeat the testing calls made in Q9.
 
 ```{r error=TRUE,linewidth=80}
-# FILL ME IN
+f = function(x) { 
+  tryCatch({
+    if (x < 0) stop("Negative input; out of natural log's domain")
+    if (x == 0) warning("Input is 0, output should be indeterminate")
+    log(x)},
+    error = function(c) print(c$message),
+    warning = function(c) print(c$message),
+    finally = {cat(cat("Input is ", x), "\n")})
+  print("hello")
+}
+f("a")
+f(-5)
+f(0)
 ```
 
 ## Question 11
@@ -204,8 +252,13 @@ if ( require("testthat") == FALSE ) {
   install.packages("testthat",repos="https://cloud.r-project.org")
   library(testthat)
 }
-
-# FILL ME IN
+test_that(desc = "Test for string of length greater than 1",
+          expect_warning(f("aa")))
+test_that(desc = "Test uppercase input", expect_equal(f("A"), 0))
+test_that(desc = "Test lowercase input", expect_equal(f("a"), 0))
+test_that(desc = "Test non-char input", expect_error(f(5)))
+test_that(desc = "Test input more than 1 string", 
+          expect_error(f(c("a", "b"))))
 ```
 
 ## Question 12
@@ -215,5 +268,20 @@ if ( require("testthat") == FALSE ) {
 
 Rewrite `f()` below in such a way that all your tests of Q11 pass. (And demonstrate that your tests pass!)
 ```{r linewidth=80}
-# FILL ME IN
+f = function(letter) {
+  if ( typeof(letter) != "character" ) stop("Input type must be character.")
+  if ( length(letter) != 1 ) stop("Input must be a string.")
+  if ( nchar(letter) > 1 ) {
+   letter = letter[1]
+   warning("More than 1 letter. Only using the first letter of input.")
+  }
+  return(log(which(letters==tolower(letter))))
+}
+test_that(desc = "Test for string of length greater than 1",
+          expect_warning(f("aa")))
+test_that(desc = "Test uppercase input", expect_equal(f("A"), 0))
+test_that(desc = "Test lowercase input", expect_equal(f("a"), 0))
+test_that(desc = "Test non-char input", expect_error(f(5)))
+test_that(desc = "Test input more than 1 string", 
+          expect_error(f(c("a", "b"))))
 ```

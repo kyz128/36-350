@@ -1,0 +1,256 @@
+---
+title: "HW: Week 12"
+author: "36-350 -- Statistical Computing"
+date: "Week 12 -- Fall 2020"
+output:
+  pdf_document:
+    toc: no
+  html_document:
+    toc: true
+    toc_float: true
+    theme: spacelab
+---
+
+Name: Kimberly Zhang
+ 
+Andrew ID: kyz
+
+You must submit **your own** lab as a knitted PDF file on Gradescope.
+
+This week's homework is a little different. Here you will be working with `SQL`, specifically with the variant `postgres`. You will do your work "remotely" in a `postgres` terminal and cut-and-paste your answers into plain code blocks below:
+```
+This is a plain code block. Note the lack of a {r} above.
+Try to avoid issues of text going off the page by utilizing
+line breaks.
+```
+Cut-and-paste both your input command and the output. *If the output has many rows, it is sufficient to cut-and-paste the first five, unless otherwise instructed.*
+
+<hr>
+
+## Question 1
+*(8 points)*
+
+*Notes 12A (7-11) + Notes 12B (3)*
+
+Create a table dubbed `rdata` that has five columns: `id` (type `serial primary key`), `a` and `b` (consisting of strings that should be no more than five characters), `moment` (which is a date), and `x` (which is a number that should have no more than five digits total and two to the right of the decimal point).
+```
+ create table rdata ( 
+ id serial primary key, 
+ a varchar(5),
+ b varchar(5), 
+ moment date, 
+ x numeric(5,2)
+ );
+
+```
+
+## Question 2
+*(8 points)*
+
+*Notes 12B (4,8)*
+
+Delete the table and create it again, with certain constraints: `a` and `b` cannot be null and must be unique; `moment` should have a default value of `2020-01-01` (); and `x` should be larger than zero.
+```
+drop table rdata;
+create table rdata( 
+id serial primary key, 
+a varchar(5) unique not null, 
+b varchar(5) unique not null, 
+moment date default '2020-01-01', 
+x numeric(5,2) check (x > 0)
+);
+```
+
+## Question 3
+*(8 points)*
+
+*Notes 12A (4)*
+
+Use `\d` in combination with the name of your table to display its properties. Copy and paste all output here.
+```
+postgres=# \d rdata
+                                   Table "public.rdata"
+ Column |         Type         | Collation | Nullable |              Default
+--------+----------------------+-----------+----------+-----------------------------------
+ id     | integer              |           | not null | nextval('rdata_id_seq'::regclass)
+ a      | character varying(5) |           | not null |
+ b      | character varying(5) |           | not null |
+ moment | date                 |           |          | '2020-01-01'::date
+ x      | numeric(5,2)         |           |          |
+Indexes:
+    "rdata_pkey" PRIMARY KEY, btree (id)
+    "rdata_a_key" UNIQUE CONSTRAINT, btree (a)
+    "rdata_b_key" UNIQUE CONSTRAINT, btree (b)
+Check constraints:
+    "rdata_x_check" CHECK (x > 0::numeric)
+```
+
+## Question 4
+*(8 points)*
+
+*Notes 12B (5)*
+
+Insert three rows of data into your table. Do this without explicity referring to the column `id` or `moment`. Display your table using the command `select * from rdata`. You should see a default date in your `moment` column!
+```
+postgres=# insert into rdata ("a", "b", "x") values 
+('x', 'y', 4.52), 
+('c', 'd', 3.75), 
+('e', 'f', 6.23);
+INSERT 0 3
+postgres=# select * from rdata;
+ id | a | b |   moment   |  x
+----+---+---+------------+------
+  1 | x | y | 2020-01-01 | 4.52
+  2 | c | d | 2020-01-01 | 3.75
+  3 | e | f | 2020-01-01 | 6.23
+(3 rows)
+```
+
+## Question 5
+*(8 points)*
+
+*Notes 12B (5)*
+
+Attempt to add another row of data with a negative value for `x`. Show what happens. (If the row is added...that's bad. It means you don't have the constraint `x` > 0 defined.) Afterwords, add a valid row of data, and show the table. Is there anything weird?
+```
+postgres=# insert into rdata ("a", "b", "x") values ('g', 'h', -5);
+ERROR:  new row for relation "rdata" violates check constraint "rdata_x_check"
+DETAIL:  Failing row contains (4, g, h, 2020-01-01, -5.00).
+postgres=# insert into rdata ("a", "b", "x") values ('g', 'h', 5);
+INSERT 0 1
+postgres=# select * from rdata;
+ id | a | b |   moment   |  x
+----+---+---+------------+------
+  1 | x | y | 2020-01-01 | 4.52
+  2 | c | d | 2020-01-01 | 3.75
+  3 | e | f | 2020-01-01 | 6.23
+  5 | g | h | 2020-01-01 | 5.00
+(4 rows)
+```
+```
+It is weird that for the new row the id is not 4. 
+```
+
+## Question 6
+*(8 points)*
+
+*Notes 12B (6)*
+
+Change the table `rdata` so as to change the data in `moment` so that two of the dates are in March 2020, while the other two are not in March 2020. Use `where` as shown in the notes, and utilize a logical "or" to update two of the dates to the same date in March at the same time. Show your updated table. (Note that the rows may be rearranged. This is OK.)
+```
+postgres=# update rdata set moment = '2020-03-14' where id = 1 or id = 5;
+UPDATE 2
+postgres=# select * from rdata;
+ id | a | b |   moment   |  x
+----+---+---+------------+------
+  2 | c | d | 2020-01-01 | 3.75
+  3 | e | f | 2020-01-01 | 6.23
+  1 | x | y | 2020-03-14 | 4.52
+  5 | g | h | 2020-03-14 | 5.00
+(4 rows)
+```
+
+## Question 7
+*(8 points)*
+
+*Notes 12B (7)*
+
+Add a new column to `rdata` dubbed `y`, and let it be of `boolean` type with default value `false`. Display your updated table.
+```
+postgres=# alter table rdata add column y boolean default 'false';
+ALTER TABLE
+postgres=# select * from rdata;
+ id | a | b |   moment   |  x   | y
+----+---+---+------------+------+---
+  2 | c | d | 2020-01-01 | 3.75 | f
+  3 | e | f | 2020-01-01 | 6.23 | f
+  1 | x | y | 2020-03-14 | 4.52 | f
+  5 | g | h | 2020-03-14 | 5.00 | f
+(4 rows)
+```
+
+## Question 8
+*(8 points)*
+
+*Notes 12B (8)*
+
+Remove the row of your table with `id` value 2. Display your updated table.
+```
+postgres=# delete from rdata where id = 2;
+DELETE 1
+postgres=# select * from rdata;
+ id | a | b |   moment   |  x   | y
+----+---+---+------------+------+---
+  3 | e | f | 2020-01-01 | 6.23 | f
+  1 | x | y | 2020-03-14 | 4.52 | f
+  5 | g | h | 2020-03-14 | 5.00 | f
+(3 rows)
+```
+
+## Question 9
+*(8 points)*
+
+*Notes 12B (7)*
+
+Rename the column `moment` to have the name `date`. Display your updated table.
+```
+postgres=# alter table rdata rename column moment to date;
+ALTER TABLE
+postgres=# select * from rdata;
+ id | a | b |    date    |  x   | y
+----+---+---+------------+------+---
+  3 | e | f | 2020-01-01 | 6.23 | f
+  1 | x | y | 2020-03-14 | 4.52 | f
+  5 | g | h | 2020-03-14 | 5.00 | f
+(3 rows)
+```
+
+## Question 10
+*(10 points)*
+
+*Notes 12C (2-4)*
+
+Download the file `GalaxyStatistics.txt` from the `DATA` directory on `Canvas`. This file contains three columns: the sky field name, the Gini coefficient value, and the concentration statistic value for each of 8,358 observed galaxies. (Feel free to call the concentration statistic column `conc` for short.) Copy it into a `postgres` session to populate a table named `galaxies`. You should add explicit checks that ensure that `gini` and `conc` have values greater than zero. Hint: you'll have to explicitly provide a `delimiter` value here.
+```
+postgres=# \copy galaxies from 'C:\Users\Kimberly Zhang\Documents\36350\Week12\GalaxyStatistics.txt' with (format csv, header, delimiter ' ');
+COPY 8358
+```
+
+## Question 11
+*(8 points)*
+
+*Notes 12B (8)*
+
+Delete all rows of the table for which the value of `gini` is less than 0.5 or the value of `conc` is greater than 3. You should find that 7,883 rows are deleted. (Show this by showing the output of your `SQL` command.)
+```
+postgres=# delete from galaxies where gini < 0.5 or conc > 3;
+DELETE 7883
+```
+
+## Question 12
+*(10 points)*
+
+*Notes 12B (6-7)*
+
+Alter the table to create a new variable `cr_rat` that is the ratio of `conc` to `gini`. Then display all the rows where the value of `cg_rat` is greater than 5.9. (This last part is accomplished by combining `select` with `where` in a way that should be hopefully becoming somewhat intuitive.) You should have nine rows of output overall.
+```
+postgres=# alter table galaxies add column cr_rat double precision;
+ALTER TABLE
+postgres=# insert into galaxies (cr_rat) select conc/gini from galaxies;
+INSERT 0 475
+postgres=# select cr_rat from galaxies where cr_rat > 5.9;
+       cr_rat
+--------------------
+ 5.9024973981230815
+  5.944933490464682
+  5.931771348506472
+  5.967836679685574
+  5.941332902528863
+   5.90282662403865
+  5.962213225793923
+   5.91596972975198
+ 5.9543252069040005
+(9 rows)
+```
+
+

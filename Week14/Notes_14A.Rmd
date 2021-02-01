@@ -1,0 +1,160 @@
+---
+title: "Database Querying via Select"
+author: "36-350 -- Statistical Computing"
+date: "Week 14 -- Fall 2020"
+output: 
+  slidy_presentation: 
+    font_adjustment: -1
+---
+
+Select: Querying a Database
+===
+
+The `select` command is how we query a database. It is a versatile and powerful command!
+
+A shortened definition that highlights elements of the syntax that are important in the context of this class is:
+```
+select
+  [*]
+  [<expression>]
+  [from <expression>]
+  [where <condition>]
+  [group by <expression>]
+  [having <condition>]
+  [order by <expression>];
+```
+
+As we explain these options (`from` and `where` this week, the rest next time), keep the following in mind:
+
+- You can pass functions into `select`. (See below.)
+
+- `select` constructs virtual tables, and its displayed output is a table. (Everything is a table in `postgres` and in `SQL` in general.)
+```
+select pi();
+        pi        
+------------------
+ 3.14159265358979
+(1 row)
+```
+
+Select: Querying a Database
+===
+
+More to keep in mind:
+
+- The functions you pass to `select` can generate vectors, which populate columns in the virtual table(s) it constructs:
+```
+select 2*x as evens from generate_series(1,3) as x;
+```
+Be at one with the parser! `Postgres` will scan this command and parse it, and will generate tables. Here:
+
+- `generate_series(1,3)` will be run first, and it will construct a virtual table with a column named `x` (the `as` sets the column name) and three entries: 1, 2, and 3. (It is like initializing a vector using `1:3` in `R`.) 
+- Then, another table will be constructed based on the first one, with one column named `evens` and entries 2, 4, and 6. This final table is what will be displayed as output.
+```
+ evens 
+-------
+     2
+     4
+     6
+(3 rows)
+```
+
+Select: Nesting Calls
+===
+
+- One can nest calls to `select`:
+```
+select min(r) as minimum, avg(r) as mean, max(r) as maximum from 
+  (select random() as r from generate_series(1,10000)) as _;
+```
+This is convoluted, but the part inside the parentheses on the second line is how you can repeat a call to a function an arbitrary number of times. Here, 10,000 calls are made to `random()`, which samples numbers uniformly between 0 and 1. The table thus generated is saved as an unnamed (see the "_") virtual table. This table is then analyzed, with the minimum, average, and maximum values in the column `r` computed. The virtual table then, in essence, goes away. The final table has one entry for each of three columns.
+
+Where: Filtering Rows in a Table
+===
+
+We can select the rows to view or act on by giving logical conditions in a `where` clause:
+```
+select id from 
+  (select generate_series(1,101) as id) as _ 
+  where id = 50;
+select r from 
+  (select random() as r from generate_series(1,10000)) as _ 
+  where r > 0.98 and r < 0.99;
+select * from 
+  (select random() as r, random() as s from generate_series(1,10000)) as _ 
+  where r > 0.99 or s < 0.01;
+select id from 
+  (select generate_series(1,10) as id, 
+          ('{A,B,C}'::text[])[ceil(random()*3)] as letter) as _ 
+  where letter = 'C';
+```
+
+In the third example, we output all columns (in this case, `r` and `s`) via the use of "*".
+
+The fourth example is a bit more complex: by using `generate_series()`, we can generate a particular number of rows (and not just 1), and in each row, a letter A, B, or C is selected at random. The letters are cast to a text array type, `3*random()` generates random numbers from 0 to 3, and `ceil()` rounds the random numbers up to the next integer (meaning 1, 2, or 3). If 1 is selected, then the letter A is sampled, etc. Finally, we determine which rows had the letter C.
+
+Select: Inserting Values Into a Table
+===
+
+As stated previously, one can utilize `select` to insert values into tables. This is done through the judicious use of `generate_series()`.
+```
+create table tmp (
+  id serial primary key,
+  x real
+);
+
+insert into tmp
+  (select generate_series(1,10) as id, random() as x);
+  
+select * from tmp;
+ id |     x     
+----+-----------
+  1 |  0.995935
+  2 |   0.98513
+... |       ...
+```
+This works because `generate_series()` outputs an auto-incremented sequence of numbers, i.e., it matches the behavior of the `serial` data type.
+
+Alternatively, we can put the `generate_series()` elsewhere and let `id` auto-increment on its own, because it is of `serial` data type:
+```
+drop table tmp;
+
+create table tmp (
+  id serial primary key,
+  x real
+);
+
+insert into tmp (x)
+  (select random() as x from generate_series(1,10));
+```
+
+Final Note: Reproducibility
+===
+
+You can set a random number seed in `postgres` using the `setseed()` function:
+```
+select setseed(0.5);
+ setseed 
+---------
+ 
+(1 row)
+
+select random();
+      random       
+-------------------
+ 0.798512778244913
+(1 row)
+
+select setseed(0.5);
+ setseed 
+---------
+ 
+(1 row)
+
+select random();
+      random       
+-------------------
+ 0.798512778244913
+(1 row)
+```
+

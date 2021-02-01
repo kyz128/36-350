@@ -1,0 +1,332 @@
+---
+title: "Final R Project"
+author: "36-350 -- Statistical Computing"
+date: "Week 11 -- Fall 2020"
+output:
+  pdf_document:
+    toc: no
+  html_document:
+    toc: true
+    toc_float: true
+    theme: spacelab
+---
+
+Name: Kimberly Zhang
+
+Andrew ID: kyz
+
+You must submit **your own** project as a PDF file on Gradescope.
+
+There are 200 points possible for this assignment.
+
+<hr>
+
+The dataset that you will examine is from fivethirtyeight.com, and it provides information on 2020 presidential election polls that have been carried out since just after the midterm elections in November 2018.
+
+The dataset, available on Canvas in the `FILES` hierarchy, is `president_polls.csv`. The only thing I will say about the contents now is that some of the columns are best treated as factors and some as strings, so *you should examine the data and try your best to preprocess all the input columns correctly*. (Note: this process may be iterative, i.e., you might determine later that you need to alter how you process the input. That's fine. That's *normal* in the real world.)
+
+**To be clear**: there is generally no unique way of going about answering each question below. For instance, you may want to use base `R` sometimes, and `tidyverse` functions at other times. In the end, *I don't particularly care how you go about answering the questions, so long as you answer them correctly*. (Some of you may very well create more elegant solutions than what I have in the solution set. And that's good. Others will create coding monstrosities...but that's OK, as my attitude is that your coding will improve with practice. One cannot expect to leave a semester-long class with the same comfort level coding `R` as I have built up over 15+ years of nearly continuous coding...)
+
+<hr>
+
+```{r wrap-hook,echo=FALSE}
+library(knitr)
+hook_output = knit_hooks$get('output')
+knit_hooks$set(output = function(x, options) {
+  # this hook is used only when the linewidth option is not NULL
+  if (!is.null(n <- options$linewidth)) {
+    x = knitr:::split_lines(x)
+    # any lines wider than n should be wrapped
+    if (any(nchar(x) > n)) x = strwrap(x, width = n)
+    x = paste(x, collapse = '\n')
+  }
+  hook_output(x, options)
+})
+
+suppressWarnings(library(tidyverse))
+```
+
+## Question 1
+*(10 points)*
+
+Download the data file and read it into `R`. Use `read.csv()` (base R function). Pass in the file name, and one other argument whose value is a vector that specifies the classes for each column ("numeric", "character", "logical", or "factor"). Use the `R` documentation to determine the appropriate argument to use.
+
+Now, about factors: if you look at the data, and the number of unique values in any given column is small (compared with the number of rows), and the data in that column is neither numeric or logical, you probably want to assume it's a factor variable. For instance, the `url` column is not going to be a factor variable, since there is not a small set of unique values.
+```{r linewidth=80}
+classes = c("numeric", "numeric", "numeric", "factor", "numeric",
+            "character", "character", "character", "character", "numeric",
+            "character", "factor", "numeric", "factor", "factor", "factor",
+            "factor", "numeric", "character", "character", "character", 
+            "character", "character", "logical", "factor", "character", 
+            "logical", "logical","character", "character", "character",
+           "factor", "numeric", "factor", "numeric", "character", "factor",
+           "numeric")
+poll.data = read.csv("president_polls.csv", colClasses = classes)
+```
+
+## Question 2
+*(15 points)*
+
+Not all of the columns are useful, nor are all the columns complete (some contain missing data). First, show the number of rows of data and the number of columns. Then, print the output from `summary()` or a similar function to determine if any columns are wholly uninformative. (Meaning, for instance, that all the values are the same.) If any are, eliminate them. (Note that `population` and `population_full` are redundant: eliminate the latter.) Then display the proportion of missing data in each of the remaining columns, but only display these proportions when they are greater than zero. Finally, use `complete.cases()` (or an equivalent tidyverse-based scheme) to eliminate rows with missing data, and display the number of rows and columns. You should have 13983 rows and 29 columns.
+```{r linewidth=80, warning=F, message=F}
+nrow(poll.data)
+ncol(poll.data)
+apply(poll.data, 2, function(x){length(unique(x))})
+excluded.cols = c("cycle", "office_type", "seat_number", "seat_name", 
+                  "election_date", "nationwide_batch", 
+                  "ranked_choice_reallocated", "stage", "population_full")
+poll.data = select(poll.data, -excluded.cols)
+na.prop = colMeans(is.na(poll.data))
+na.prop[which(na.prop > 0)]
+poll.data = poll.data[complete.cases(poll.data), ]
+nrow(poll.data)
+ncol(poll.data)
+```
+
+## Question 3
+*(10 points)*
+
+What is the range of times over which polling was done? Find the earliest date in `start_date`, the latest date in `end_date`, and determine (via code, not by hand!) how many days elapsed between these dates. (Search for the dates using code...do not make any assumptions about the earliest date being on the last line of the dataset, etc.)
+```{r linewidth=80}
+start = as.Date(poll.data$start_date, format = "%m/%d/%y")
+end = as.Date(poll.data$end_date, format = "%m/%d/%y")
+min(start)
+max(end)
+max(end) - min(start)
+```
+
+## Question 4
+*(10 points)*
+
+Create a data frame that shows the names of each (supposed) candidate and the number of times they each appear in the dataset. Sort the data frame by the number of appearances, in descending order. (Note: you might get a warning, depending on how you code this. Ignore the warning.)
+```{r linewidth=80}
+counts.table = sort(table(poll.data$candidate_name), decreasing = TRUE)
+candidate.appearance = data.frame(counts.table)
+colnames(candidate.appearance) = c("Candidate Name", "Freq")
+candidate.appearance
+```
+
+## Question 5
+*(10 points)*
+
+Display a probability histogram (as opposed to a frequency histogram) for the percentage of the vote that Joe Biden received in each poll conducted in Pennsylvania. Give the histogram an appropriate x-axis label and title. Set the bin boundaries to a sequence from 40 to 56 in steps of 1.
+```{r linewidth=80}
+biden.subset= filter(poll.data, state == "Pennsylvania" & 
+                       answer == "Biden")
+hist(biden.subset$pct, freq = FALSE, breaks = seq(40, 56, by = 1),
+     main = "Biden Votes in Pennsylvania Poll", xlab = "Percentage of Vote")
+```
+
+## Question 6
+*(10 points)*
+
+Biden's support in Pennsylvania has an approximately normal shape. (Yeah, there's a lower tail and all, but let's go with it.) Fit a normal distribution to these data using an appropriate optimizer. (You need not include the gradient here.) Display the optimized values of the `mean` and `sd` parameters. Redisplay your histogram from Q5 with the optimized normal pdf superimposed. Don't expect the model to be a "good" one. Hint: if you have a hard time finding the optimum value, try plotting a few times with lines superimposed with different values of the `rate` parameter. This will help build your intuition.
+```{r linewidth=80}
+my.fit.fun = function(my.par,my.data)
+{
+  -sum(log(dnorm(my.data,mean=my.par[1],sd=my.par[2])))      
+}
+my.par = c(50,1) 
+optim.out = optim(my.par,my.fit.fun,my.data=biden.subset$pct,
+                  method="Nelder-Mead")
+optim.out$par
+hist(biden.subset$pct, freq = FALSE, breaks = seq(40, 56, by = 1),
+     main = "Biden Votes in Pennsylvania Poll", xlab = "Percentage of Vote")
+x = seq(40,56,by=0.01)
+lines(x,dnorm(x,mean=optim.out$par[1],sd=optim.out$par[2]))
+```
+
+## Question 7
+*(10 points)*
+
+Estimate the uncertainty for the `mean` parameter via bootstrapping. Display a histogram showing the estimated values of `mean` and display the 2.5% and 97.5% quantiles. Hint: if you get warnings about "NaNs produced", wrap the calls to optim with `suppressWarnings`. Hint II: set the random number seed for reproducibility.
+```{r linewidth=80}
+set.seed(101)
+B = 10000
+n = nrow(biden.subset)
+res = rep(NA, B)
+for (b in 1:B){
+  idx = sample(1:n, size = n, replace = TRUE)
+  data = biden.subset[idx, ]
+  optim.output = suppressWarnings(optim(my.par,my.fit.fun,my.data=data$pct,
+                  method="Nelder-Mead"))
+  res[b]<-optim.output$par[1]
+}
+q= quantile(res, probs = c(0.025, 0.975))
+hist(res, main = "Bootstrapped Means")
+abline(v= q[1])
+abline(v= q[2])
+```
+## Question 8
+*(20 points)*
+
+Compute the per-month average value of `pct` for Donald Trump for all polls in the dataset. In other words, compute the average value of `pct` for Trump in November 2018, then December 2018, etc., up to October 2020. Plot the autocorrelation function for your resulting vector of averages. If you observe local minima at lags 2 and 13, a local maximum at lag 9, and no significant values (other than lag 0, which doesn't count), you've probably coded everything correctly. (Note: this is 20 points because constructing the code to extract `pct` on a month-by-month basis will take a bit of thought. Realize that `Date` objects are good to work with if you are trying to go through the data in temporal order.) For the dates of the polls: use `end_date`.
+```{r linewidth=80, warning = FALSE, message = FALSE}
+trump.subset = filter(poll.data, candidate_name == "Donald Trump")
+dates = as.POSIXlt(trump.subset$end_date, format= "%m/%d/%y")
+trump.subset = mutate(trump.subset, trunc_months = as.character(trunc(dates, "months")))
+aggregated = trump.subset %>% 
+	group_by(trunc_months) %>% 
+	summarise(mean_pct = mean(pct))
+acf(aggregated$mean_pct)
+
+```
+
+## Question 9
+*(10 points)*
+
+Display a table that shows the *percentage* of online polls that achieve each possible polling grade. (See the columns `methodology` and `fte_grade`.) Only include online polls that were graded! (For the others, the grade is the empty string "".) You will need to reorder the output from table so that "A+" is shown first, then "A", "A-", "A/B", "B+", etc. (There is no magic way to do this: type out the vector that has the order you need and apply that.) Round each percentage to the nearest tenth of a percent. If you do everything correctly, you should find, e.g., that 7.6% of graded online polls get a "B-" rating.
+```{r linewidth=80, warning=FALSE, message=FALSE}
+online.subset = filter(poll.data, methodology == "Online" & fte_grade != "")
+num.rows = nrow(online.subset)
+online.subset$fte_grade = factor(online.subset$fte_grade, 
+                                 levels = c("", "A+", "A", "A-", 
+                                            "A/B", "B+", "B", "B-", 
+                                            "B/C", "C+", "C", "C-",
+                                            "C/D", "D-"))
+pct.table = round(table(online.subset$fte_grade)/num.rows*100, 1)
+pct.table = pct.table[-1]
+pct.table
+```
+
+## Question 10
+*(10 points)*
+
+Compute the mean and the standard error of the mean of the value of `pct` for each unique value of `candidate_party`, but display your result for Republicans (`REP`) and Democrats (`DEM`) only.
+```{r linewidth=80, warning=FALSE, message=FALSE}
+poll.data %>% group_by(candidate_party) %>% summarise(mean_pct = mean(pct),
+                                                      sd_pct = sd(pct)) %>% 
+  filter(candidate_party %in% c("REP", "DEM"))
+```
+
+## Question 11
+*(10 points)*
+
+Create a new data frame in which each unique value of `poll_id` only appears twice. Call this `df.sub`. If you do this correctly, the number of rows in `df.sub` should be 2790 (representing 1395 separate polls). Display the number of rows. Hint: playing with `table()` and its names attribute may help you.
+```{r linewidth=80}
+only.two = table(poll.data$poll_id)
+idx = as.numeric(names(only.two[which(only.two == 2)]))
+df.sub = poll.data %>% filter(poll_id %in% idx)
+nrow(df.sub)
+```
+
+## Question 12
+*(10 points)*
+
+The data frame `df.sub` has results for 1395 two-candidate polls. Some of these polls involve "registered voters" (`rv` in the `population` column) and some involve "likely voters" (`lv`). Are the means of the absolute values of the differences in the percentages for each candidate significantly different for polls of registered voters versus polls of likely voters? To determine this, compute the absolute difference in the percentages for each group (it will be a vector of differences for each group) and use a two-sample t-test to test the null hypothesis that the means of differences for each group are equal. (For the alternative hypothesis that the means are not equal, I get a $p$ value of 9.057 $\times$ 10$^{-4}$.)
+```{r linewidth=80, warning= FALSE, message=FALSE}
+rv.df = df.sub %>% filter(population == "rv")
+lv.df = df.sub %>% filter(population == "lv")
+f = function(x){
+  abs(x[1]-x[2])
+}
+rv.diff = rv.df %>% group_by(poll_id) %>% summarise(diff = f(pct))
+lv.diff = lv.df %>% group_by(poll_id) %>% summarise(diff = f(pct))
+t.test(rv.diff$diff, lv.diff$diff, alternative = "two.sided")
+```
+
+## Question 13
+*(10 points)*
+
+How many times does the name of each state appear in the polling URLs? (See the column `url`.) Create a data frame that shows how often each of the 40 states with a *one-word name* appear. (In the next question we'll deal with two-word names.) A few things to keep in mind. Note that you don't need to type out the state names...use `state.name`, a built-in `R` object you utilized earlier in the semester. To eliminate the two-word state names for now, search for instances of a space. (Also note that URLs are repeated within the rows associated with each poll. Only analyze *unique* instances of each URL.)
+```{r linewidth=80}
+one.word.states = grep("^[A-Za-z]+$",state.name,value=TRUE)
+uniq.url = unique(poll.data$url)
+one.word.state.counts = rep(NA, length(one.word.states))
+for (s in seq_along(one.word.states)) {
+  reg.exp = regexpr(one.word.states[s],uniq.url, useBytes=TRUE, 
+                    ignore.case = TRUE)
+  one.word.state.counts[s] = length(regmatches(uniq.url,reg.exp))
+}
+one.word = data.frame(state = one.word.states, counts = one.word.state.counts)
+one.word
+```
+
+## Question 14
+*(10 points)*
+
+Now, take the list of character vectors you generated in the last question, and paste contiguous words together (with a space separating them!). For instance, if you have a vector of strings `c("a","b","c")`, you should create the vector `c("a b","b c")`. (You might actually create `c("a b","b c","c ")` depending on how you create the vector, but that's fine.) Then use code similar to what you used above to count up instances of two-word state names. Put these into a data frame, like above, and merge that data frame with the one you created in the last question...and reorder the state name column to be in alphabetical order. Display your final result. I find that Arizona appears 34 times and New Hampshire 7 times.
+```{r linewidth=80}
+two.word.states = grep("[[:space:]]",state.name,value=TRUE)
+two.word.state.counts = rep(NA, length(two.word.states))
+for (s in seq_along(two.word.states)) {
+  state = unlist(strsplit(two.word.states[s], " "))
+  reg.exp = regexpr(paste(state[1], "[[:punct:]]",state[2], sep =""),uniq.url, 
+                    useBytes=TRUE, ignore.case = TRUE)
+  two.word.state.counts[s] = length(regmatches(uniq.url,reg.exp))
+}
+two.word = data.frame(state = two.word.states, counts = two.word.state.counts)
+all.states = rbind(two.word, one.word)
+all.states %>% arrange(as.character(state))
+```
+
+## Question 15
+*(10 points)*
+
+Write a function that takes in a candidate's surname (e.g., "Biden") and the full polling data frame and returns a set of names that represents the candidate's unique "opponents". This involves getting the set of `poll_id` values associated with the candidate, and outputting all names associated with those values (but without the original name). For instance, if "Trump" only appears in polls that also include "Rubio" and "Bush", your function should output "Rubio" and "Bush". (Note: outputting full names is fine.) Your function should return `NULL` if the name you provide is not in the list of candidates. It should also return null if there is a space in the name you provide. Your function should work with capitalized and uncapitalized input. Your function should return vector of type "character", not a factor variable. Test your function using "Smith", "Nancy Pelosi", "Cuomo", and "trump".
+```{r linewidth=80}
+f = function(surname, df){
+  candidates = tolower(unique(df$answer))
+  if (!(tolower(surname) %in% candidates) || 
+      length(grep("[[:space:]]", surname, value = TRUE)) ){
+    return(NULL)
+  } 
+  else{
+    df.candidate = filter(df, tolower(answer) == tolower(surname))
+    poll.idx = df.candidate$poll_id
+    opponents = filter(df, poll_id %in% poll.idx & 
+                         tolower(answer) != tolower(surname))
+    return(as.character(unique(opponents$answer)))
+  }
+  
+}
+ f("Smith", poll.data)
+ f("Nancy Pelosi", poll.data)
+ f("Cuomo", poll.data)
+ f("trump", poll.data)
+```
+## Question 16
+*(10 points)*
+
+We might expect that the higher a grade a polling firm receives, the larger the sample size of its polls. Maybe, maybe not. Visually test this hypothesis by making side-by-side boxplots showing the distribution of log-base-10 of the sample size versus polling grade. Your plot should have data in the order "A+", "A", "A-", "A/B", etc., from left to right. Any data for which there is no grade should be excluded. This means you'll have to drop `""` (or the empty string) as a factor level (hint: see `droplevels()`). For the plot: use base-R boxplotting, and change the y-axis label to be "Log", followed by a subscript "10", followed by "(Sample Size)". You'll need to Google how to do this: the function you are looking for is `expression()`.
+```{r linewidth=80}
+poll.data$fte_grade = factor(poll.data$fte_grade, 
+                                 levels = c("", "A+", "A", "A-", 
+                                            "A/B", "B+", "B", "B-", 
+                                            "B/C", "C+", "C", "C-",
+                                             "C/D", "D-"))
+poll.data$fte_grade = droplevels(poll.data$fte_grade, exclude = "")
+
+boxplot(log10(poll.data$sample_size) ~ poll.data$fte_grade, 
+        main="Distribution of Polling Firm Grade", 
+        ylab=expression("Log"[10]*"(Sample Size)"), 
+        xlab="Poll Grade") 
+
+```
+
+## Question 17
+*(15 points)*
+
+For each poll, compute the absolute values of the amount of time between it and all other polls, as judged by the values in the `created_at` column, and retain the *smallest* value. (If my polls are at times 4, 5, and 8, I would retain the values 1, 1, and 3, where the first 1 is the time between 4 and 5, etc.) Histogram the result, and log-transform the values along the x-axis, using base-10. (Use `expression()` again for proper labelling.) Note that getting this right is a bit complicated. First, retain only the unique values of `created_at`. Second, you need to convert dates like 2/9/19 to 02/09/2019; a combination of `strsplit()`, `sapply()`, and `paste()` would work here. (This is not strictly necessary if you can insert "20" at the beginning of each year by another method.) Third, convert the data to `POSIXlt` format. Fourth, initialize a vector called `smallest.difftime` that will hold all the differences. Fifth, utilize a for-loop and the `difftime()` function with units `days`, and save the smallest difference to `smallest.difftime`. (If you just compute differences without `difftime`, the units can change from computation to computation...which is bad.) Then plot. If you have 2000 data, you will compute 2000 time differences; you'd want to sort these values and take the second sorted value, since the first sorted value is 0 (time difference between a datum and itself). Enjoy.
+```{r linewidth=80}
+unique.created = unique(poll.data$created_at)
+add.century = format(as.POSIXlt(unique.created, format = "%m/%d/%y %H:%M"), "%m/%d/20%y %H:%M")
+convert.date = as.POSIXlt(add.century, format = "%m/%d/%Y %H:%M")
+smallest.difftime = rep(NA, length(unique.created))
+for (t in 1:length(unique.created)) {
+  diff = sort(abs(difftime(convert.date[t], convert.date, units = "days")))
+  smallest.difftime[t] = as.numeric(diff[2])
+}
+hist(log10(smallest.difftime), xlab = expression("Log"[10]*"(Difference)"),
+     main = "Distribution of the Poll Time Difference in Log10 space")
+```
+
+## Question 18
+*(10 points)*
+
+Edit your file `dark_and_stormy.R` in your 36-350 `Git` repo so that it prints "It was a dark and stormy night so I stayed in to complete my R project and contemplate the future." Then push your change to `GitHub` and use `source_url()` from the `devtools` package to run the code in the chunk below.
+```{r linewidth=80, warning=FALSE, message=FALSE}
+library(devtools)
+source_url("https://raw.githubusercontent.com/kyz128/36-350/new_branch/dark_and_stormy.R")
+```
+And with that, you're done.
